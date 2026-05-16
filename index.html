@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>UK Heat Pump Map</title>
+
+  <!-- STYLES -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- LEAFLET -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+
+  <!-- PAPAPARSE -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+
+
+<body>
+
+  <div id="app">
+
+    <!-- ========================================= -->
+    <!-- LEFT PANEL -->
+    <!-- ========================================= -->
+
+    <div id="panel">
+
+      <h1>UK Heat Pump Map</h1>
+
+      <div class="subtitle">
+        Mapping the UK's journey to heat decarbonisation
+      </div>
+
+      <div class="description">
+        This map captures large-scale heat pumps used in district heating and industrial heat applications across the UK.
+      </div>
+
+      <!-- FILTERS -->
+      <div id="filterContainer"></div>
+
+  <div id="footerDisclaimer">
+    This map is provided for informational purposes only. While reasonable efforts have been made to ensure accuracy, no guarantee is given as to completeness or reliability. It should not be used as a definitive operational or engineering dataset.
+  </div>
+
+<div class="panel-footer">
+  <a href="terms.html" class="terms-button">Terms of Use</a>
+  <a href="#" id="contactBtn" class="terms-button">Contact</a>
+</div>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- MAP -->
+    <!-- ========================================= -->
+
+    <div id="map">
+
+      <!-- ========================================= -->
+      <!-- LEGEND -->
+      <!-- ========================================= -->
+
+      <div id="legend">
+
+        <div class="legend-title">
+          Project Status
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-dot operational"></span>
+          Operational
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-dot construction"></span>
+          Under Construction
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-dot planned"></span>
+          Planned
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================= -->
+  <!-- DETAIL PANEL -->
+  <!-- ========================================= -->
+
+  <div id="detailPanel" class="hidden">
+
+    <div class="detailHeader">
+
+      <h2 id="detailTitle"></h2>
+
+      <div class="close-btn" onclick="closeDetails()">
+        ×
+      </div>
+
+    </div>
+
+    <!-- IMAGE -->
+    <img id="detailImage" src="" />
+
+    <!-- DESCRIPTION -->
+    <p id="detailDescription"></p>
+
+    <!-- DETAILS GRID -->
+    <div class="detailGrid">
+
+      <div>
+        <strong>Type</strong>
+        <div id="detailType"></div>
+      </div>
+
+      <div>
+        <strong>Capacity</strong>
+        <div id="detailCapacity"></div>
+      </div>
+
+      <div>
+        <strong>Status</strong>
+        <div id="detailStatus"></div>
+      </div>
+
+      <div>
+        <strong>Refrigerant</strong>
+        <div id="detailRefrigerant"></div>
+      </div>
+
+      <div>
+        <strong>Manufacturer</strong>
+        <div id="detailManufacturer"></div>
+      </div>
+
+      <div>
+        <strong>Flow Temperature</strong>
+        <div id="detailFlowTemperature"></div>
+      </div>
+
+      <div>
+        <strong>Application</strong>
+        <div id="detailApplication"></div>
+      </div>
+
+      <div>
+        <strong>Operator</strong>
+        <div id="detailOperator"></div>
+      </div>
+
+      <div>
+        <strong>Year Commissioned</strong>
+        <div id="detailYearCommissioned"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Header links -->
+
+
+<!-- Contact Modal -->
+<div id="contactModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="close-btn" id="closeModal">&times;</button>
+
+    <h2>Contact</h2>
+
+    <p>
+      If you spot missing projects, incorrect information, or would
+      like to suggest updates, please get in touch.
+    </p>
+
+    <p>
+      We welcome feedback from manufacturers, developers, operators,
+      consultants and researchers involved in large-scale heat pump projects,
+      district heating and industrial decarbonisation.
+      
+    </p>
+
+    <p>
+      <strong>Email:</strong>
+      <a href="mailto:info@ukheatpumpmap.com">
+        info@ukheatpumpmap.com
+      </a>
+    </p>
+  </div>
+</div>
+  <!-- ========================================= -->
+  <!-- SCRIPTS -->
+  <!-- ========================================= -->
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script src="script.js"></script>
+
+
+
+</body>
+
+</html>
+

@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gateshead Mine Water Scheme",
+        "type": "Mine Water",
+        "capacity": "6 MW",
+        "status": "Operational",
+        "description": "A mine water heat pump scheme supplying low-carbon heat to district heating networks in Gateshead.",
+        "image": "https://images.unsplash.com/photo-1581092160562-40aa08e78837"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-1.603, 54.952]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Seaham Garden Village District Heating",
+        "type": "District Heating (Mine Water)",
+        "capacity": "5 MW",
+        "status": "Planned",
+        "description": "A planned district heating network using mine water heat recovery to supply new housing developments.",
+        "image": "https://images.unsplash.com/photo-1509391366360-2e959784a276"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-1.351, 54.839]
+      }
+    }
+  ]
+}
