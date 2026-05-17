@@ -21,7 +21,7 @@
 </head>
 
 
-<body>
+<body class="map-page">
 
   <div id="app">
 
@@ -35,9 +35,6 @@
     </button>
 
     <div id="panel">
-
-      <!-- MOBILE PANEL CLOSE BUTTON -->
-      <button id="panelClose" aria-label="Close panel">✕</button>
 
       <h1>UK Heat Pump Map</h1>
 
@@ -104,6 +101,9 @@
   <!-- ========================================= -->
 
   <div id="detailPanel" class="hidden">
+
+    <!-- STATUS ACCENT BAR -->
+    <div id="detailAccent"></div>
 
     <div class="detailHeader">
 
@@ -179,8 +179,6 @@
 <!-- Contact Modal -->
 <div id="contactModal" class="modal hidden">
   <div class="modal-content">
-    <button class="close-btn" id="closeModal">&times;</button>
-
     <h2>Contact</h2>
 
     <p>

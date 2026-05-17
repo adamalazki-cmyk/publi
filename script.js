@@ -1,5 +1,6 @@
 const map = L.map('map', {
-  preferCanvas: true
+  preferCanvas: true,
+  zoomControl: false
 }).setView([54.5, -3], 6);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -94,11 +95,38 @@ set(
 
   const panel = document.getElementById("detailPanel");
   if (panel) panel.classList.remove("hidden");
+
+  // Set status accent bar colour
+  const accentColours = {
+    "Operational":        "#4cc9f0",
+    "Under Construction": "#8b7cf6",
+    "Planned":            "#94a3b8",
+    "Feasibility":        "#64748b"
+  };
+  const accent = document.getElementById("detailAccent");
+  if (accent) {
+    accent.style.background = accentColours[p.status] || "rgba(255,255,255,0.12)";
+  }
+
+  // On mobile: full-screen detail panel, hide legend
+  if (isMobile()) {
+    panel.classList.add("detail-fullscreen");
+    const legend = document.getElementById("legend");
+    if (legend) legend.style.display = "none";
+  }
 }
 
 function closeDetails() {
   const panel = document.getElementById("detailPanel");
-  if (panel) panel.classList.add("hidden");
+  if (panel) {
+    panel.classList.add("hidden");
+    panel.classList.remove("detail-fullscreen");
+  }
+  // Restore legend on mobile
+  if (isMobile()) {
+    const legend = document.getElementById("legend");
+    if (legend) legend.style.display = "";
+  }
 }
 
 window.closeDetails = closeDetails;
@@ -241,8 +269,21 @@ function drawMap(data) {
     fillOpacity: 1
   });
 
-  // ✅ ATTACH CLICK TO ACTUAL MARKERS (NOT GROUP)
-  const onClick = () => openDetails(feature);
+  // Click: show popup if detail panel closed, update detail panel if already open
+  const onClick = (e) => {
+    const detailPanel = document.getElementById("detailPanel");
+    const panelOpen = detailPanel && !detailPanel.classList.contains("hidden");
+
+    if (panelOpen) {
+      // Detail panel already open — update it with this marker's data
+      openDetails(feature);
+      setTimeout(() => {
+        map.closePopup();
+        document.querySelectorAll('.leaflet-popup').forEach(el => el.remove());
+      }, 0);
+    }
+    // If panel is closed, do nothing here — let the popup open naturally via bindPopup
+  };
 
   outer.on("click", onClick);
   inner.on("click", onClick);
@@ -409,7 +450,6 @@ function buildFilters() {
 //
 window.openDetailsByName = function(name) {
 
-  map.closePopup?.();
   if (!allData) return;
 
   const feature = allData.features.find(
@@ -418,12 +458,15 @@ window.openDetailsByName = function(name) {
 
   if (!feature) return;
 
-  const panel = document.getElementById("detailPanel");
+  // Defer popup close so it runs after Leaflet finishes handling the click
+  setTimeout(() => {
+    map.closePopup();
+    document.querySelectorAll('.leaflet-popup').forEach(el => el.remove());
+  }, 0);
 
-  // ALWAYS update content
   openDetails(feature);
 
-  // ensure panel is visible (even if already open)
+  const panel = document.getElementById("detailPanel");
   if (panel && panel.classList.contains("hidden")) {
     panel.classList.remove("hidden");
   }
@@ -441,7 +484,6 @@ document.body.appendChild(backdrop);
 
 const panel       = document.getElementById('panel');
 const panelToggle = document.getElementById('panelToggle');
-const panelClose  = document.getElementById('panelClose');
 
 function openPanel() {
   panel.classList.remove('panel-collapsed');
@@ -470,7 +512,6 @@ if (isMobile()) {
 }
 
 panelToggle.addEventListener('click', openPanel);
-panelClose.addEventListener('click', collapsePanel);
 backdrop.addEventListener('click', collapsePanel);
 
 // Re-check on resize / orientation change
@@ -503,20 +544,13 @@ window.addEventListener('orientationchange', handleResize);
 
 const contactBtn = document.getElementById('contactBtn');
 const modal = document.getElementById('contactModal');
-const closeModal = document.getElementById('closeModal');
 
 contactBtn.addEventListener('click', (e) => {
   e.preventDefault();
   modal.classList.remove('hidden');
-  // Only blur #app on desktop — on mobile the modal sits above everything via z-index
   if (!isMobile()) {
     document.getElementById('app').classList.add('blurred');
   }
-});
-
-closeModal.addEventListener('click', () => {
-  modal.classList.add('hidden');
-  document.getElementById('app').classList.remove('blurred');
 });
 
 modal.addEventListener('click', (e) => {

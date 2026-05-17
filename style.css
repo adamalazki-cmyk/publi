@@ -2,7 +2,11 @@ html, body {
   margin: 0;
   height: 100%;
   font-family: Arial, sans-serif;
-  overflow: hidden; /* prevent any page-level scrolling / blank white space */
+}
+
+/* Map page only — prevents blank white space on scroll */
+body.map-page {
+  overflow: hidden;
 }
 
 /* LAYOUT */
@@ -188,6 +192,17 @@ label {
   opacity: 1;
 }
 
+/* DETAIL PANEL STATUS ACCENT BAR */
+#detailAccent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 22px 22px 0 0;
+  transition: background 0.3s ease;
+}
+
 /* CLOSE BUTTON */
 .close-btn {
   position: absolute;
@@ -287,8 +302,8 @@ input[type="checkbox"] {
 #legend {
   position: absolute;
 
-  bottom: 50px;
-  left: 24px;   /* ✅ moved from right to left */
+  bottom: 20px;  /* aligns with detail panel bottom edge */
+  left: 24px;
 
   z-index: 1500;
 
@@ -699,10 +714,6 @@ input[type="checkbox"] {
   display: none; /* hidden on desktop */
 }
 
-#panelClose {
-  display: none; /* hidden on desktop */
-}
-
 /* =========================================
    MOBILE LAYOUT
    ========================================= */
@@ -751,7 +762,7 @@ input[type="checkbox"] {
     justify-content: center;
 
     position: fixed;
-    top: 80px;
+    top: 10px;  /* aligns with legend top */
     left: 10px;
     z-index: 4000;
 
@@ -786,35 +797,6 @@ input[type="checkbox"] {
     transform: scale(0.85);
   }
 
-  /* Close (✕) button inside panel — mobile only */
-  #panelClose {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    position: absolute;
-    top: 14px;
-    right: 14px;
-
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-
-    color: #ffffff;
-    font-size: 16px;
-
-    cursor: pointer;
-
-    transition: background 0.2s ease;
-  }
-
-  #panelClose:hover {
-    background: rgba(255, 255, 255, 0.18);
-  }
-
   /* Backdrop overlay when panel is open */
   #panelBackdrop {
     display: block;
@@ -843,6 +825,22 @@ input[type="checkbox"] {
     max-height: 42vh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+  }
+
+  #detailAccent {
+    border-radius: 0;
+  }
+
+  /* Full-screen detail panel on mobile (when "more info" is clicked) */
+  #detailPanel.detail-fullscreen {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    z-index: 4500; /* above hamburger and backdrop */
   }
 
   /* Legend — top right, sized to fit fully on screen */
