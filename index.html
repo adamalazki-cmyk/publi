@@ -7,6 +7,9 @@
 
   <title>UK Heat Pump Map</title>
 
+  <!-- SEO: explicit description prevents Google pulling filter text into snippet -->
+  <meta name="description" content="An interactive map of large-scale heat pump installations across the UK, covering district heating and industrial decarbonisation projects." />
+
   <!-- STYLES -->
   <link rel="stylesheet" href="style.css" />
 
@@ -47,7 +50,7 @@
       </div>
 
       <!-- FILTERS -->
-      <div id="filterContainer"></div>
+      <div id="filterContainer" data-nosnippet></div>
 
   <div id="footerDisclaimer">
     This map is provided for informational purposes only. While reasonable efforts have been made to ensure accuracy, no guarantee is given as to completeness or reliability. It should not be used as a definitive operational or engineering dataset.
