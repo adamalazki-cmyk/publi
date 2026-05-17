@@ -429,6 +429,78 @@ window.openDetailsByName = function(name) {
   }
 };
 
+// ----------------------
+// MOBILE PANEL TOGGLE
+// ----------------------
+
+// Inject backdrop element
+const backdrop = document.createElement('div');
+backdrop.id = 'panelBackdrop';
+backdrop.classList.add('backdrop-hidden'); // start hidden
+document.body.appendChild(backdrop);
+
+const panel       = document.getElementById('panel');
+const panelToggle = document.getElementById('panelToggle');
+const panelClose  = document.getElementById('panelClose');
+
+function openPanel() {
+  panel.classList.remove('panel-collapsed');
+  backdrop.classList.remove('backdrop-hidden');
+  panelToggle.classList.add('hidden');
+  panelToggle.setAttribute('aria-expanded', 'true');
+  // Disable map pointer events so touch on panel doesn't scroll the map
+  document.getElementById('map').style.pointerEvents = 'none';
+}
+
+function collapsePanel() {
+  panel.classList.add('panel-collapsed');
+  backdrop.classList.add('backdrop-hidden');
+  panelToggle.classList.remove('hidden');
+  panelToggle.setAttribute('aria-expanded', 'false');
+  document.getElementById('map').style.pointerEvents = '';
+}
+
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+// Start collapsed on mobile
+if (isMobile()) {
+  panel.classList.add('panel-collapsed');
+}
+
+panelToggle.addEventListener('click', openPanel);
+panelClose.addEventListener('click', collapsePanel);
+backdrop.addEventListener('click', collapsePanel);
+
+// Re-check on resize / orientation change
+// Debounced so it fires once the browser has finished reflowing
+let resizeTimer;
+function handleResize() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+
+    if (!isMobile()) {
+      // ── Desktop / landscape-tablet: restore full panel ──
+      panel.classList.remove('panel-collapsed');
+      backdrop.classList.add('backdrop-hidden');
+      panelToggle.classList.add('hidden');
+      document.getElementById('map').style.pointerEvents = '';
+    } else {
+      // ── Mobile / portrait: ensure panel is collapsed ──
+      collapsePanel();
+    }
+
+    // Always tell Leaflet the container changed size
+    map.invalidateSize({ animate: false });
+
+  }, 200); // wait for browser reflow after rotation
+}
+
+window.addEventListener('resize', handleResize);
+// orientationchange fires on mobile before resize completes — handle both
+window.addEventListener('orientationchange', handleResize);
+
 const contactBtn = document.getElementById('contactBtn');
 const modal = document.getElementById('contactModal');
 const closeModal = document.getElementById('closeModal');
@@ -436,13 +508,14 @@ const closeModal = document.getElementById('closeModal');
 contactBtn.addEventListener('click', (e) => {
   e.preventDefault();
   modal.classList.remove('hidden');
-
-  document.getElementById('app').classList.add('blurred');
+  // Only blur #app on desktop — on mobile the modal sits above everything via z-index
+  if (!isMobile()) {
+    document.getElementById('app').classList.add('blurred');
+  }
 });
 
 closeModal.addEventListener('click', () => {
   modal.classList.add('hidden');
-
   document.getElementById('app').classList.remove('blurred');
 });
 
