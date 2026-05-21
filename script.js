@@ -87,9 +87,11 @@ set(
   if (img) {
     if (p.image && p.image.trim() !== "") {
       img.src = p.image;
+      img.alt = p.name || "Project image";
       img.style.display = "block";
     } else {
       img.style.display = "none";
+      img.alt = "";
     }
   }
 
