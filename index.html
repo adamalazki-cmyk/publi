@@ -7,7 +7,7 @@
 
   <title>UK Heat Pump Map</title>
 
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.png">
   
   <!-- SEO: explicit description prevents Google pulling filter text into snippet -->
@@ -97,16 +97,19 @@
         <div class="legend-item">
           <span class="legend-dot operational"></span>
           Operational
+          <span class="legend-count" id="count-operational"></span>
         </div>
 
         <div class="legend-item">
           <span class="legend-dot construction"></span>
           Under Construction
+          <span class="legend-count" id="count-construction"></span>
         </div>
 
         <div class="legend-item">
           <span class="legend-dot planned"></span>
           Planned
+          <span class="legend-count" id="count-planned"></span>
         </div>
 
       </div>
@@ -184,7 +187,7 @@
       </div>
 
       <div>
-        <strong>Year Commissioned</strong>
+        <strong id="detailYearLabel">Year Commissioned</strong>
         <div id="detailYearCommissioned"></div>
       </div>
 

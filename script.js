@@ -82,6 +82,15 @@ set(
   set("detailOperator", p.operator);
   set("detailYearCommissioned", p.yearCommissioned);
 
+  // Label changes based on status
+  const yearLabel = document.getElementById("detailYearLabel");
+  if (yearLabel) {
+    const notCommissioned = ["Planned", "Under Construction", "Feasibility"];
+    yearLabel.textContent = notCommissioned.includes(p.status)
+      ? "Year Planned"
+      : "Year Commissioned";
+  }
+
   const img = document.getElementById("detailImage");
 
   if (img) {
@@ -228,6 +237,28 @@ fetch('UK Heat pump Map Database.csv')
     }
   });
 
+function updateLegendCounts(data) {
+  const counts = {
+    "Operational": 0,
+    "Under Construction": 0,
+    "Planned": 0
+  };
+
+  data.features.forEach(f => {
+    const s = f.properties.status;
+    if (counts[s] !== undefined) counts[s]++;
+  });
+
+  const el = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  el("count-operational",   counts["Operational"]);
+  el("count-construction",  counts["Under Construction"]);
+  el("count-planned",       counts["Planned"]);
+}
+
 //
 // ----------------------
 // MAP RENDERING
@@ -239,6 +270,8 @@ function drawMap(data) {
     map.removeLayer(geojsonLayer);
     geojsonLayer = null;
   }
+
+  updateLegendCounts(data);
 
   geojsonLayer = L.geoJSON(data, {
 
@@ -352,27 +385,30 @@ function updateFilters() {
   if (!allData) return;
 
   const checked = {};
-
-  document.querySelectorAll("#filterContainer input:checked")
+  document.querySelectorAll("#filterContainer input")
     .forEach(input => {
-
       const key = input.dataset.key;
-      const value = input.value;
-
-      if (!checked[key]) checked[key] = new Set();
-      checked[key].add(value);
+      if (!checked[key]) checked[key] = { values: new Set(), anyChecked: false };
+      if (input.checked) {
+        checked[key].values.add(input.value);
+        checked[key].anyChecked = true;
+      }
     });
 
   const filtered = {
     type: "FeatureCollection",
     features: allData.features.filter(f => {
-
       const p = f.properties;
-
       for (let key in checked) {
-        if (!checked[key].has(p[key])) return false;
+        const { values, anyChecked } = checked[key];
+        // Nothing checked in category → show all
+        if (!anyChecked) continue;
+        const featureVal = p[key];
+        // Feature has no value for this key → always show
+        if (!featureVal) continue;
+        // Feature value must match one of the checked options
+        if (!values.has(featureVal)) return false;
       }
-
       return true;
     })
   };
