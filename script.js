@@ -301,21 +301,15 @@ function drawMap(data) {
     const status = feature.properties.status || "";
     const colour = statusColours[status] || "#94a3b8";
 
-    const outer = L.circleMarker(latlng, {
-      radius: 14,
-      fillColor: colour,
-      fillOpacity: 0.15,
-      stroke: false
-    });
-
-    const inner = L.circleMarker(latlng, {
-      radius: 6,
-      fillColor: colour,
-      color: "#ffffff",
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 1
-    });
+const marker = L.circleMarker(latlng, {
+  radius: 6,
+  fillColor: colour,
+  color: "#ffffff",
+  weight: 2,
+  opacity: 1,
+  fillOpacity: 1,
+  className: 'project-marker'
+});
 
     const popupHtml = `
       <div class="popupCard">
@@ -348,12 +342,10 @@ function drawMap(data) {
       }
     };
 
-    outer.bindPopup(popupHtml);
-    inner.bindPopup(popupHtml);
-    outer.on("click", onClick);
-    inner.on("click", onClick);
+marker.bindPopup(popupHtml);
+marker.on("click", onClick);
 
-    clusterGroup.addLayer(L.layerGroup([outer, inner]));
+clusterGroup.addLayer(marker);
   });
 
   map.addLayer(clusterGroup);
