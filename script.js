@@ -109,9 +109,9 @@ set(
 
   // Set status accent bar colour
   const accentColours = {
-    "Operational":        "#4cc9f0",
+    "Operational":        "#f59e0b",
     "Under Construction": "#8b7cf6",
-    "Planned":            "#94a3b8",
+    "Planned":            "#4cc9f0",
     "Feasibility":        "#64748b"
   };
   const accent = document.getElementById("detailAccent");
@@ -249,14 +249,15 @@ function updateLegendCounts(data) {
     if (counts[s] !== undefined) counts[s]++;
   });
 
-  const el = (id, val) => {
+  const set = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
   };
 
-  el("count-operational",   counts["Operational"]);
-  el("count-construction",  counts["Under Construction"]);
-  el("count-planned",       counts["Planned"]);
+  set("count-total",        data.features.length);
+  set("count-operational",  counts["Operational"]);
+  set("count-construction", counts["Under Construction"]);
+  set("count-planned",      counts["Planned"]);
 }
 
 //
@@ -273,107 +274,92 @@ function drawMap(data) {
 
   updateLegendCounts(data);
 
-  geojsonLayer = L.geoJSON(data, {
-
- pointToLayer: function(feature, latlng) {
-
-  const status = feature.properties.status || "";
-
   const statusColours = {
-    "Operational": "#4cc9f0",
+    "Operational":        "#f59e0b",
     "Under Construction": "#8b7cf6",
-    "Planned": "#94a3b8",
-    "Feasibility": "#64748b"
+    "Planned":            "#4cc9f0",
+    "Feasibility":        "#64748b"
   };
 
-  let colour = statusColours[status] || "#4cc9f0";
-
-  const outer = L.circleMarker(latlng, {
-    radius: 14,
-    fillColor: colour,
-    fillOpacity: 0.15,
-    stroke: false
-  });
-
-  const inner = L.circleMarker(latlng, {
-    radius: 6,
-    fillColor: colour,
-    color: "#ffffff",
-    weight: 2,
-    opacity: 1,
-    fillOpacity: 1
-  });
-
-  // Click: show popup if detail panel closed, update detail panel if already open
-  const onClick = (e) => {
-    const detailPanel = document.getElementById("detailPanel");
-    const panelOpen = detailPanel && !detailPanel.classList.contains("hidden");
-
-    if (panelOpen) {
-      // Detail panel already open — update it with this marker's data
-      openDetails(feature);
-      setTimeout(() => {
-        map.closePopup();
-        document.querySelectorAll('.leaflet-popup').forEach(el => el.remove());
-      }, 0);
+  const clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 40,
+    disableClusteringAtZoom: 10,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction: function(cluster) {
+      return L.divIcon({
+        html: `<div class="cluster-inner">${cluster.getChildCount()}</div>`,
+        className: 'custom-cluster',
+        iconSize: [36, 36]
+      });
     }
-    // If panel is closed, do nothing here — let the popup open naturally via bindPopup
-  };
+  });
 
-  outer.on("click", onClick);
-  inner.on("click", onClick);
+  data.features.forEach(feature => {
+    const coords = feature.geometry.coordinates;
+    const latlng = L.latLng(coords[1], coords[0]);
+    const status = feature.properties.status || "";
+    const colour = statusColours[status] || "#94a3b8";
 
-  return L.layerGroup([outer, inner]);
-},
+    const outer = L.circleMarker(latlng, {
+      radius: 14,
+      fillColor: colour,
+      fillOpacity: 0.15,
+      stroke: false
+    });
 
-   onEachFeature: function(feature, layer) {
+    const inner = L.circleMarker(latlng, {
+      radius: 6,
+      fillColor: colour,
+      color: "#ffffff",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 1
+    });
 
-  // OPEN DETAIL PANEL ON MARKER CLICK
-
-
-  layer.eachLayer(l => {
-
-    l.bindPopup(`
+    const popupHtml = `
       <div class="popupCard">
-
-        <div class="popupAccent status-${(feature.properties.status || "")
-          .toLowerCase()
-          .replace(/\s+/g, "-")}"></div>
-
+        <div class="popupAccent status-${status.toLowerCase().replace(/\s+/g, "-")}"></div>
         <div class="popupContent">
-
-          <div class="popupHeader">
-            ${feature.properties.name}
-          </div>
-
+          <div class="popupHeader">${feature.properties.name}</div>
           <div class="popupMeta">
             <div><span>Type</span><span>${feature.properties.type || ""}</span></div>
-
             <div>
               <span>Capacity</span>
-              <span>
-                ${feature.properties.capacity ? feature.properties.capacity + " MW" : ""}
-              </span>
+              <span>${feature.properties.capacity ? feature.properties.capacity + " MW" : ""}</span>
             </div>
-
-            <div><span>Status</span><span>${feature.properties.status || ""}</span></div>
+            <div><span>Status</span><span>${status}</span></div>
           </div>
-
-          <button class="popupButton"
-            onclick="window.openDetailsByName('${feature.properties.name}')">
+          <button class="popupButton" onclick="window.openDetailsByName('${(feature.properties.name || "").replace(/'/g, "\\'")}')">
             More info →
           </button>
-
         </div>
+      </div>`;
 
-      </div>
-    `);
+    const onClick = () => {
+      const detailPanel = document.getElementById("detailPanel");
+      const panelOpen = detailPanel && !detailPanel.classList.contains("hidden");
+      if (panelOpen) {
+        openDetails(feature);
+        setTimeout(() => {
+          map.closePopup();
+          document.querySelectorAll('.leaflet-popup').forEach(el => el.remove());
+        }, 0);
+      }
+    };
 
+    outer.bindPopup(popupHtml);
+    inner.bindPopup(popupHtml);
+    outer.on("click", onClick);
+    inner.on("click", onClick);
+
+    clusterGroup.addLayer(L.layerGroup([outer, inner]));
   });
+
+  map.addLayer(clusterGroup);
+  geojsonLayer = clusterGroup;
 }
 
-  }).addTo(map);
-}
 
 //
 // ----------------------
@@ -551,6 +537,13 @@ if (isMobile()) {
 
 panelToggle.addEventListener('click', openPanel);
 backdrop.addEventListener('click', collapsePanel);
+
+// Reset filters button
+document.getElementById('resetFilters').addEventListener('click', () => {
+  document.querySelectorAll('#filterContainer input[type="checkbox"]')
+    .forEach(input => { input.checked = true; });
+  updateFilters();
+});
 
 // Re-check on resize / orientation change
 // Debounced so it fires once the browser has finished reflowing

@@ -35,6 +35,10 @@
     href="https://unpkg.com/leaflet/dist/leaflet.css"
   />
 
+  <!-- LEAFLET MARKERCLUSTER -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
   <!-- PAPAPARSE -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
@@ -94,6 +98,10 @@
           Project Status
         </div>
 
+        <div class="legend-total">
+          <span id="count-total">0</span> projects
+        </div>
+
         <div class="legend-item">
           <span class="legend-dot operational"></span>
           Operational
@@ -111,6 +119,8 @@
           Planned
           <span class="legend-count" id="count-planned"></span>
         </div>
+
+        <button id="resetFilters" class="reset-btn">Reset filters</button>
 
       </div>
 
@@ -144,53 +154,53 @@
     <p id="detailDescription"></p>
 
     <!-- DETAILS GRID -->
+
+    <div class="detailGridLabel">Project</div>
     <div class="detailGrid">
-
-      <div>
-        <strong>Type</strong>
-        <div id="detailType"></div>
-      </div>
-
-      <div>
-        <strong>Capacity</strong>
-        <div id="detailCapacity"></div>
-      </div>
-
       <div>
         <strong>Status</strong>
         <div id="detailStatus"></div>
       </div>
-
       <div>
-        <strong>Refrigerant</strong>
-        <div id="detailRefrigerant"></div>
+        <strong>Type</strong>
+        <div id="detailType"></div>
       </div>
-
-      <div>
-        <strong>Manufacturer</strong>
-        <div id="detailManufacturer"></div>
-      </div>
-
-      <div>
-        <strong>Flow Temperature</strong>
-        <div id="detailFlowTemperature"></div>
-      </div>
-
       <div>
         <strong>Application</strong>
         <div id="detailApplication"></div>
       </div>
-
       <div>
         <strong>Operator</strong>
         <div id="detailOperator"></div>
       </div>
+    </div>
 
+    <div class="detailGridLabel">Technical</div>
+    <div class="detailGrid">
+      <div>
+        <strong>Capacity</strong>
+        <div id="detailCapacity"></div>
+      </div>
+      <div>
+        <strong>Flow Temperature</strong>
+        <div id="detailFlowTemperature"></div>
+      </div>
+      <div>
+        <strong>Refrigerant</strong>
+        <div id="detailRefrigerant"></div>
+      </div>
+      <div>
+        <strong>Manufacturer</strong>
+        <div id="detailManufacturer"></div>
+      </div>
+    </div>
+
+    <div class="detailGridLabel">Commercial</div>
+    <div class="detailGrid">
       <div>
         <strong id="detailYearLabel">Year Commissioned</strong>
         <div id="detailYearCommissioned"></div>
       </div>
-
     </div>
 
   </div>
@@ -228,6 +238,7 @@
   <!-- ========================================= -->
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script src="script.js"></script>
 

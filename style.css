@@ -240,6 +240,32 @@ label {
   border-radius: 8px;
 }
 
+/* DETAIL GRID SECTION LABELS */
+.detailGridLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  opacity: 0.45;
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+
+/* CLUSTER MARKERS */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background-color: rgba(18, 18, 18, 0.5) !important;
+}
+
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background-color: rgba(18, 18, 18, 0.85) !important;
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 13px;
+}
+
 /* DETAIL GRID */
 .detailGrid {
   display: grid;
@@ -334,10 +360,40 @@ input[type="checkbox"] {
     0 0 10px rgba(255,255,255,0.12);
 }
 
-/* STATUS COLOURS */
+.legend-total {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
 
+.reset-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-btn:hover {
+  background: rgba(245,158,11,0.12);
+  color: #f59e0b;
+  border-color: rgba(245,158,11,0.3);
+}
+
+/* STATUS COLOURS — operational=orange, construction=purple, planned=blue */
 .legend-dot.operational {
-  background: #4cc9f0;
+  background: #f59e0b;
 }
 
 .legend-dot.construction {
@@ -345,7 +401,7 @@ input[type="checkbox"] {
 }
 
 .legend-dot.planned {
-  background: #94a3b8;
+  background: #4cc9f0;
 }
 
 /* LEAFLET POPUP STYLING */
@@ -389,9 +445,9 @@ input[type="checkbox"] {
   width: 4px;
 }
 
-/* STATUS COLOURS */
+/* STATUS COLOURS — operational=orange, construction=purple, planned=blue */
 .status-operational {
-  background: #4cc9f0;
+  background: #f59e0b;
 }
 
 .status-under-construction {
@@ -399,7 +455,7 @@ input[type="checkbox"] {
 }
 
 .status-planned {
-  background: #94a3b8;
+  background: #4cc9f0;
 }
 
 /* CONTENT WRAPPER */
@@ -668,6 +724,29 @@ input[type="checkbox"] {
 .back-button:hover {
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
+}
+
+/* CUSTOM CLUSTER MARKER */
+.custom-cluster {
+  background: transparent !important;
+}
+
+.cluster-inner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(18, 18, 18, 0.85);
+  border: 1.5px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* =========================================
