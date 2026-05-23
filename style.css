@@ -250,22 +250,6 @@ label {
   margin-bottom: 6px;
 }
 
-/* CLUSTER MARKERS */
-.marker-cluster-small,
-.marker-cluster-medium,
-.marker-cluster-large {
-  background-color: rgba(18, 18, 18, 0.5) !important;
-}
-
-.marker-cluster-small div,
-.marker-cluster-medium div,
-.marker-cluster-large div {
-  background-color: rgba(18, 18, 18, 0.85) !important;
-  color: #fff !important;
-  font-weight: 700;
-  font-size: 13px;
-}
-
 /* DETAIL GRID */
 .detailGrid {
   display: grid;
@@ -726,27 +710,50 @@ input[type="checkbox"] {
   color: #f59e0b;
 }
 
-/* CUSTOM CLUSTER MARKER */
-.custom-cluster {
-  background: transparent !important;
-}
-
-.cluster-inner {
-  width: 36px;
-  height: 36px;
+/* CUSTOM GLASS MARKERS */
+.marker-glass-outer {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(18, 18, 18, 0.85);
-  border: 1.5px solid rgba(255,255,255,0.2);
-  color: #fff;
-  font-family: Arial, sans-serif;
-  font-weight: 700;
-  font-size: 13px;
+  background: rgba(18, 18, 18, 0.72);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.marker-glass-outer:hover {
+  transform: scale(1.2);
+}
+
+.marker-glass-outer.operational {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 10px rgba(245,158,11,0.35);
+  border-color: rgba(245,158,11,0.35);
+}
+
+.marker-glass-outer.under-construction {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 10px rgba(139,124,246,0.35);
+  border-color: rgba(139,124,246,0.35);
+}
+
+.marker-glass-outer.planned {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 10px rgba(76,201,240,0.35);
+  border-color: rgba(76,201,240,0.35);
+}
+
+.marker-glass-outer.feasibility {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 10px rgba(100,116,139,0.35);
+  border-color: rgba(100,116,139,0.35);
+}
+
+.marker-glass-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
 /* =========================================

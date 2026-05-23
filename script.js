@@ -281,35 +281,33 @@ function drawMap(data) {
     "Feasibility":        "#64748b"
   };
 
-  const clusterGroup = L.markerClusterGroup({
-    maxClusterRadius: 40,
-    disableClusteringAtZoom: 10,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    iconCreateFunction: function(cluster) {
-      return L.divIcon({
-        html: `<div class="cluster-inner">${cluster.getChildCount()}</div>`,
-        className: 'custom-cluster',
-        iconSize: [36, 36]
-      });
-    }
-  });
+  const statusClass = {
+    "Operational":        "operational",
+    "Under Construction": "under-construction",
+    "Planned":            "planned",
+    "Feasibility":        "feasibility"
+  };
+
+  const layerGroup = L.layerGroup();
 
   data.features.forEach(feature => {
     const coords = feature.geometry.coordinates;
     const latlng = L.latLng(coords[1], coords[0]);
     const status = feature.properties.status || "";
     const colour = statusColours[status] || "#94a3b8";
+    const cls    = statusClass[status]   || "planned";
 
-const marker = L.circleMarker(latlng, {
-  radius: 6,
-  fillColor: colour,
-  color: "#ffffff",
-  weight: 2,
-  opacity: 1,
-  fillOpacity: 1,
-  className: 'project-marker'
-});
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="marker-glass-outer ${cls}">
+               <div class="marker-glass-dot" style="background:${colour}"></div>
+             </div>`,
+      iconSize:   [28, 28],
+      iconAnchor: [14, 14],
+      popupAnchor:[0, -16]
+    });
+
+    const marker = L.marker(latlng, { icon });
 
     const popupHtml = `
       <div class="popupCard">
@@ -330,7 +328,9 @@ const marker = L.circleMarker(latlng, {
         </div>
       </div>`;
 
-    const onClick = () => {
+    marker.bindPopup(popupHtml);
+
+    marker.on("click", () => {
       const detailPanel = document.getElementById("detailPanel");
       const panelOpen = detailPanel && !detailPanel.classList.contains("hidden");
       if (panelOpen) {
@@ -340,16 +340,13 @@ const marker = L.circleMarker(latlng, {
           document.querySelectorAll('.leaflet-popup').forEach(el => el.remove());
         }, 0);
       }
-    };
+    });
 
-marker.bindPopup(popupHtml);
-marker.on("click", onClick);
-
-clusterGroup.addLayer(marker);
+    layerGroup.addLayer(marker);
   });
 
-  map.addLayer(clusterGroup);
-  geojsonLayer = clusterGroup;
+  layerGroup.addTo(map);
+  geojsonLayer = layerGroup;
 }
 
 
