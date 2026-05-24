@@ -240,26 +240,40 @@ fetch('UK Heat pump Map Database.csv')
   });
 
 function updateLegendCounts(data) {
-  const counts = {
-    "Operational": 0,
-    "Under Construction": 0,
-    "Planned": 0
-  };
+  const counts = { "Operational": 0, "Under Construction": 0, "Planned": 0 };
+  const mw     = { "Operational": 0, "Under Construction": 0, "Planned": 0 };
 
   data.features.forEach(f => {
-    const s = f.properties.status;
-    if (counts[s] !== undefined) counts[s]++;
+    const s   = f.properties.status;
+    const cap = parseFloat(f.properties.capacity);
+    if (counts[s] !== undefined) {
+      counts[s]++;
+      if (!isNaN(cap)) mw[s] += cap;
+    }
   });
 
-  const set = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-  };
+  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  const totalMW    = Object.values(mw).reduce((a, b) => a + b, 0);
 
-  set("count-total",        data.features.length);
+  const fmt = (n) => n > 0 ? n.toFixed(n % 1 === 0 ? 0 : 1) : '—';
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  // Collapsed legend (kept for mobile toggle compatibility)
+  set("count-total",        totalCount);
   set("count-operational",  counts["Operational"]);
   set("count-construction", counts["Under Construction"]);
   set("count-planned",      counts["Planned"]);
+
+  // Expanded legend columns
+  set("exp-count-operational",  counts["Operational"]);
+  set("exp-count-construction", counts["Under Construction"]);
+  set("exp-count-planned",      counts["Planned"]);
+  set("exp-count-total",        totalCount);
+
+  set("exp-mw-operational",  fmt(mw["Operational"]));
+  set("exp-mw-construction", fmt(mw["Under Construction"]));
+  set("exp-mw-planned",      fmt(mw["Planned"]));
+  set("exp-mw-total",        fmt(totalMW));
 }
 
 //
@@ -542,19 +556,22 @@ if (isMobile()) {
 panelToggle.addEventListener('click', openPanel);
 backdrop.addEventListener('click', collapsePanel);
 
-// Legend toggle (mobile only)
-const legendToggle = document.getElementById('legendToggle');
-const legendBody   = document.getElementById('legendBody');
-const legendEl     = document.getElementById('legend');
+// Legend expand / collapse
+const legendExpand   = document.getElementById('legendExpand');
+const legendCollapse = document.getElementById('legendCollapse');
+const legendEl       = document.getElementById('legend');
 
-legendToggle.addEventListener('click', () => {
-  const isOpen = legendBody.classList.toggle('open');
-  legendToggle.setAttribute('aria-expanded', isOpen);
-  legendToggle.textContent = isOpen ? '×' : '＋';
-  legendEl.classList.toggle('legend-open', isOpen);
+legendExpand.addEventListener('click', () => {
+  legendEl.classList.add('legend-open');
+  legendExpand.setAttribute('aria-expanded', 'true');
 });
 
-// Reset filters button
+legendCollapse.addEventListener('click', () => {
+  legendEl.classList.remove('legend-open');
+  legendExpand.setAttribute('aria-expanded', 'false');
+});
+
+// Reset filters button (now in left panel)
 document.getElementById('resetFilters').addEventListener('click', () => {
   document.querySelectorAll('#filterContainer input[type="checkbox"]')
     .forEach(input => { input.checked = true; });

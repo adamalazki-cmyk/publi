@@ -72,6 +72,8 @@
       <!-- FILTERS -->
       <div id="filterContainer" data-nosnippet></div>
 
+      <button id="resetFilters" class="reset-btn-panel">↺ Reset filters</button>
+
   <div id="footerDisclaimer">
     This map is provided for informational purposes only. While reasonable efforts have been made to ensure accuracy, no guarantee is given as to completeness or reliability. It should not be used as a definitive operational or engineering dataset.
   </div>
@@ -113,36 +115,58 @@
 
       <div id="legend">
 
-        <div id="legendHeader">
-          <div class="legend-title">Project Status</div>
-          <button id="legendToggle" aria-label="Toggle legend" aria-expanded="false">＋</button>
+        <!-- COLLAPSED: dot + label rows + expand arrow -->
+        <div id="legendCollapsed">
+
+          <div class="legend-status-row">
+            <span class="legend-dot operational"></span>
+            <span class="legend-label">Operational</span>
+          </div>
+          <div class="legend-status-row">
+            <span class="legend-dot construction"></span>
+            <span class="legend-label">Under Construction</span>
+          </div>
+          <div class="legend-status-row">
+            <span class="legend-dot planned"></span>
+            <span class="legend-label">Planned</span>
+          </div>
+
+          <button id="legendExpand" aria-label="Expand legend" aria-expanded="false">›</button>
+
         </div>
 
-        <div id="legendBody">
+        <!-- EXPANDED: data columns -->
+        <div id="legendExpanded">
 
-          <div class="legend-total">
-            <span id="count-total">0</span> projects
+          <div class="legend-data-header">
+            <div class="legend-data-status"></div>
+            <div class="legend-data-col-head">No.</div>
+            <div class="legend-data-col-head">MW</div>
           </div>
 
-          <div class="legend-item">
+          <div class="legend-data-row" data-status="operational">
             <span class="legend-dot operational"></span>
-            Operational
-            <span class="legend-count" id="count-operational"></span>
+            <span id="exp-count-operational" class="legend-data-val">—</span>
+            <span id="exp-mw-operational" class="legend-data-val">—</span>
           </div>
-
-          <div class="legend-item">
+          <div class="legend-data-row" data-status="construction">
             <span class="legend-dot construction"></span>
-            Under Construction
-            <span class="legend-count" id="count-construction"></span>
+            <span id="exp-count-construction" class="legend-data-val">—</span>
+            <span id="exp-mw-construction" class="legend-data-val">—</span>
           </div>
-
-          <div class="legend-item">
+          <div class="legend-data-row" data-status="planned">
             <span class="legend-dot planned"></span>
-            Planned
-            <span class="legend-count" id="count-planned"></span>
+            <span id="exp-count-planned" class="legend-data-val">—</span>
+            <span id="exp-mw-planned" class="legend-data-val">—</span>
           </div>
 
-          <button id="resetFilters" class="reset-btn">Reset filters</button>
+          <div class="legend-data-total">
+            <span class="legend-data-total-label">Total</span>
+            <span id="exp-count-total" class="legend-data-val">—</span>
+            <span id="exp-mw-total" class="legend-data-val">—</span>
+          </div>
+
+          <button id="legendCollapse" aria-label="Collapse legend">‹</button>
 
         </div>
 
