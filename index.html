@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 
   <title>UK Heat Pump Map</title>
 
@@ -34,6 +34,10 @@
     rel="stylesheet"
     href="https://unpkg.com/leaflet/dist/leaflet.css"
   />
+
+  <!-- LEAFLET MARKERCLUSTER -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
   <!-- PAPAPARSE -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -85,38 +89,62 @@
     <div id="map">
 
       <!-- ========================================= -->
+      <!-- SEARCH -->
+      <!-- ========================================= -->
+
+      <div id="mapSearch">
+        <div id="mapSearchResults"></div>
+        <div id="mapSearchInputWrap">
+          <span id="mapSearchIcon">⌕</span>
+          <input
+            id="mapSearchInput"
+            type="text"
+            placeholder="Search projects…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="mapSearchClear" aria-label="Clear search" style="display:none">×</button>
+        </div>
+      </div>
+
+      <!-- ========================================= -->
       <!-- LEGEND -->
       <!-- ========================================= -->
 
       <div id="legend">
 
-        <div class="legend-title">
-          Project Status
+        <div id="legendHeader">
+          <div class="legend-title">Project Status</div>
+          <button id="legendToggle" aria-label="Toggle legend" aria-expanded="false">＋</button>
         </div>
 
-        <div class="legend-total">
-          <span id="count-total">0</span> projects
-        </div>
+        <div id="legendBody">
 
-        <div class="legend-item">
-          <span class="legend-dot operational"></span>
-          Operational
-          <span class="legend-count" id="count-operational"></span>
-        </div>
+          <div class="legend-total">
+            <span id="count-total">0</span> projects
+          </div>
 
-        <div class="legend-item">
-          <span class="legend-dot construction"></span>
-          Under Construction
-          <span class="legend-count" id="count-construction"></span>
-        </div>
+          <div class="legend-item">
+            <span class="legend-dot operational"></span>
+            Operational
+            <span class="legend-count" id="count-operational"></span>
+          </div>
 
-        <div class="legend-item">
-          <span class="legend-dot planned"></span>
-          Planned
-          <span class="legend-count" id="count-planned"></span>
-        </div>
+          <div class="legend-item">
+            <span class="legend-dot construction"></span>
+            Under Construction
+            <span class="legend-count" id="count-construction"></span>
+          </div>
 
-        <button id="resetFilters" class="reset-btn">Reset filters</button>
+          <div class="legend-item">
+            <span class="legend-dot planned"></span>
+            Planned
+            <span class="legend-count" id="count-planned"></span>
+          </div>
+
+          <button id="resetFilters" class="reset-btn">Reset filters</button>
+
+        </div>
 
       </div>
 
@@ -234,6 +262,7 @@
   <!-- ========================================= -->
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script src="script.js"></script>
 

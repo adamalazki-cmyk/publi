@@ -137,6 +137,8 @@ function closeDetails() {
   if (isMobile()) {
     const legend = document.getElementById("legend");
     if (legend) legend.style.display = "";
+    // Re-tell Leaflet its container size hasn't changed
+    setTimeout(() => map.invalidateSize({ animate: false }), 50);
   }
 }
 
@@ -288,14 +290,27 @@ function drawMap(data) {
     "Feasibility":        "feasibility"
   };
 
-  const layerGroup = L.layerGroup();
+  const clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 40,
+    disableClusteringAtZoom: 10,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction: function(cluster) {
+      return L.divIcon({
+        html: `<div class="marker-cluster-glass">${cluster.getChildCount()}</div>`,
+        className: '',
+        iconSize:   [28, 28],
+        iconAnchor: [14, 14]
+      });
+    }
+  });
 
   data.features.forEach(feature => {
-    const coords = feature.geometry.coordinates;
-    const latlng = L.latLng(coords[1], coords[0]);
-    const status = feature.properties.status || "";
-    const colour = statusColours[status] || "#94a3b8";
-    const cls    = statusClass[status]   || "planned";
+    const coords  = feature.geometry.coordinates;
+    const latlng  = L.latLng(coords[1], coords[0]);
+    const status  = feature.properties.status || "";
+    const colour  = statusColours[status] || "#94a3b8";
+    const cls     = statusClass[status]   || "planned";
 
     const icon = L.divIcon({
       className: '',
@@ -342,11 +357,11 @@ function drawMap(data) {
       }
     });
 
-    layerGroup.addLayer(marker);
+    clusterGroup.addLayer(marker);
   });
 
-  layerGroup.addTo(map);
-  geojsonLayer = layerGroup;
+  map.addLayer(clusterGroup);
+  geojsonLayer = clusterGroup;
 }
 
 
@@ -489,11 +504,11 @@ window.openDetailsByName = function(name) {
 // MOBILE PANEL TOGGLE
 // ----------------------
 
-// Inject backdrop element
+// Inject backdrop element into #app so it stacks correctly with the panel
 const backdrop = document.createElement('div');
 backdrop.id = 'panelBackdrop';
-backdrop.classList.add('backdrop-hidden'); // start hidden
-document.body.appendChild(backdrop);
+backdrop.classList.add('backdrop-hidden');
+document.getElementById('app').appendChild(backdrop);
 
 const panel       = document.getElementById('panel');
 const panelToggle = document.getElementById('panelToggle');
@@ -526,6 +541,18 @@ if (isMobile()) {
 
 panelToggle.addEventListener('click', openPanel);
 backdrop.addEventListener('click', collapsePanel);
+
+// Legend toggle (mobile only)
+const legendToggle = document.getElementById('legendToggle');
+const legendBody   = document.getElementById('legendBody');
+const legendEl     = document.getElementById('legend');
+
+legendToggle.addEventListener('click', () => {
+  const isOpen = legendBody.classList.toggle('open');
+  legendToggle.setAttribute('aria-expanded', isOpen);
+  legendToggle.textContent = isOpen ? '×' : '＋';
+  legendEl.classList.toggle('legend-open', isOpen);
+});
 
 // Reset filters button
 document.getElementById('resetFilters').addEventListener('click', () => {
@@ -577,6 +604,150 @@ modal.addEventListener('click', (e) => {
   if (e.target === modal) {
     modal.classList.add('hidden');
     document.getElementById('app').classList.remove('blurred');
+  }
+});
+
+// ----------------------
+// MAP SEARCH
+// ----------------------
+
+const searchInput   = document.getElementById('mapSearchInput');
+const searchResults = document.getElementById('mapSearchResults');
+const searchClear   = document.getElementById('mapSearchClear');
+
+function escapeHtml(str) {
+  return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function highlightMatch(text, query) {
+  const escaped = escapeHtml(text);
+  const idx = escaped.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return escaped;
+  return escaped.slice(0, idx)
+    + `<em>${escaped.slice(idx, idx + query.length)}</em>`
+    + escaped.slice(idx + query.length);
+}
+
+function closeSearch() {
+  searchResults.style.display = 'none';
+  searchResults.innerHTML = '';
+}
+
+function selectResult(feature) {
+  searchInput.value = '';
+  searchClear.style.display = 'none';
+  closeSearch();
+  searchInput.blur(); // dismiss keyboard before flying
+
+  const coords = feature.geometry.coordinates;
+  const latlng = L.latLng(coords[1], coords[0]);
+
+  // Wait for keyboard to retract before flying
+  setTimeout(() => {
+    map.invalidateSize({ animate: false });
+    map.flyTo(latlng, 13, { duration: 1.2 });
+
+    map.once('moveend', () => {
+      if (!geojsonLayer) return;
+      geojsonLayer.eachLayer(layer => {
+        const checkLayer = l => {
+          if (!l.getLatLng) return;
+          const ll = l.getLatLng();
+          if (Math.abs(ll.lat - latlng.lat) < 0.0001 &&
+              Math.abs(ll.lng - latlng.lng) < 0.0001) {
+            geojsonLayer.zoomToShowLayer(l, () => l.openPopup());
+          }
+        };
+        layer.eachLayer ? layer.eachLayer(checkLayer) : checkLayer(layer);
+      });
+    });
+  }, 350);
+}
+
+searchInput.addEventListener('input', () => {
+  const query = searchInput.value.trim();
+
+  searchClear.style.display = query.length ? 'block' : 'none';
+
+  if (!query || !allData) {
+    closeSearch();
+    return;
+  }
+
+  const matches = allData.features
+    .filter(f => (f.properties.name || '').toLowerCase().includes(query.toLowerCase()))
+    .slice(0, 6);
+
+  if (matches.length === 0) {
+    searchResults.innerHTML = `<div class="search-no-results">No projects found</div>`;
+    searchResults.style.display = 'block';
+    return;
+  }
+
+  searchResults.innerHTML = matches.map((f, i) => {
+    const p = f.properties;
+    const name = highlightMatch(p.name, query);
+    const cap  = p.capacity ? `${p.capacity} MW` : '—';
+    const statusColours = {
+      "Operational": "#f59e0b",
+      "Under Construction": "#8b7cf6",
+      "Planned": "#4cc9f0",
+      "Feasibility": "#64748b"
+    };
+    const dot = `<span style="
+      display:inline-block;width:7px;height:7px;border-radius:50%;
+      background:${statusColours[p.status] || '#94a3b8'};
+      margin-right:5px;flex-shrink:0;vertical-align:middle;
+    "></span>`;
+    return `<div class="search-result-item" data-idx="${i}">
+      <span class="search-result-name">${dot}${name}</span>
+      <span class="search-result-meta">${cap}</span>
+    </div>`;
+  }).join('');
+
+  searchResults.style.display = 'block';
+
+  // Attach click handlers
+  searchResults.querySelectorAll('.search-result-item').forEach((el, i) => {
+    el.addEventListener('click', () => selectResult(matches[i]));
+  });
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchClear.style.display = 'none';
+  closeSearch();
+  searchInput.focus();
+});
+
+// Close results when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#mapSearch')) closeSearch();
+});
+
+// Keyboard navigation
+searchInput.addEventListener('keydown', (e) => {
+  const items = searchResults.querySelectorAll('.search-result-item');
+  const active = searchResults.querySelector('.search-result-item.active');
+  let idx = active ? [...items].indexOf(active) : -1;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (active) active.classList.remove('active');
+    idx = Math.min(idx + 1, items.length - 1);
+    items[idx]?.classList.add('active');
+    items[idx]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (active) active.classList.remove('active');
+    idx = Math.max(idx - 1, 0);
+    items[idx]?.classList.add('active');
+    items[idx]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && active) {
+    active.click();
+  } else if (e.key === 'Escape') {
+    searchInput.blur();
+    closeSearch();
   }
 });
 
