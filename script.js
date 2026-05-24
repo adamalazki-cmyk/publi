@@ -255,7 +255,7 @@ function updateLegendCounts(data) {
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const totalMW    = Object.values(mw).reduce((a, b) => a + b, 0);
 
-  const fmt = (n) => n > 0 ? n.toFixed(n % 1 === 0 ? 0 : 1) : '—';
+  const fmt = (n) => n > 0 ? n.toFixed(1) : '—';
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
   // Collapsed legend (kept for mobile toggle compatibility)
@@ -767,4 +767,3 @@ searchInput.addEventListener('keydown', (e) => {
     closeSearch();
   }
 });
-
