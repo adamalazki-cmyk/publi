@@ -79,6 +79,7 @@
   </div>
 
 <div class="panel-footer">
+  <a href="about.html" class="terms-button">About</a>
   <a href="terms.html" class="terms-button">Terms of Use</a>
   <a href="#" id="contactBtn" class="terms-button">Contact</a>
 </div>
@@ -193,14 +194,19 @@
 
       <h2 id="detailTitle"></h2>
 
-      <div class="close-btn" onclick="closeDetails()">
+      <button class="close-btn" type="button" onclick="closeDetails()" aria-label="Close project details">
         ×
-      </div>
+      </button>
 
     </div>
 
     <!-- IMAGE -->
-    <img id="detailImage" src="" alt="" />
+    <div id="detailImageWrap" class="detail-image-wrap">
+      <img id="detailImage" src="" alt="" />
+      <button id="detailShareBtn" class="detail-share-btn" type="button" aria-label="Copy link to this project">
+        Share
+      </button>
+    </div>
 
     <!-- DESCRIPTION -->
     <p id="detailDescription"></p>

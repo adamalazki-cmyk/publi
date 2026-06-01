@@ -13,6 +13,8 @@ let allData = null;
 let geojsonLayer = null;
 let activeFeatureId = null;
 let activeLayers = [];
+let activeDetailFeature = null;
+let shareButtonResetTimer = null;
 //
 // ✅ FIX 1 — SAFE CSV VALUE HELPER (WAS MISSING)
 //
@@ -25,6 +27,85 @@ const getValue = (row, keys) => {
   }
   return null;
 };
+
+const createProjectSlug = (value) => {
+  return (value || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
+const findFeatureBySlug = (slug) => {
+  if (!allData || !slug) return null;
+  return allData.features.find(f => createProjectSlug(f.properties.name) === slug);
+};
+
+const getProjectShareUrl = (feature) => {
+  const url = new URL(window.location.href);
+  url.searchParams.set("project", createProjectSlug(feature?.properties?.name));
+  return url.toString();
+};
+
+const setProjectUrl = (feature) => {
+  const url = new URL(window.location.href);
+  url.searchParams.set("project", createProjectSlug(feature?.properties?.name));
+  history.replaceState(null, "", url);
+};
+
+const clearProjectUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("project");
+  history.replaceState(null, "", url.pathname + url.search + url.hash);
+};
+
+function openProjectFromUrl() {
+  const slug = new URLSearchParams(window.location.search).get("project");
+  const feature = findFeatureBySlug(slug);
+  if (!feature) return;
+
+  const coords = feature.geometry.coordinates;
+  if (coords) {
+    map.setView([coords[1], coords[0]], Math.max(map.getZoom(), 10));
+  }
+
+  openDetails(feature, { updateUrl: false });
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+function showShareCopiedState() {
+  const shareBtn = document.getElementById("detailShareBtn");
+  if (!shareBtn) return;
+
+  clearTimeout(shareButtonResetTimer);
+  shareBtn.textContent = "Copied";
+  shareBtn.classList.add("copied");
+
+  shareButtonResetTimer = setTimeout(() => {
+    shareBtn.textContent = "Share";
+    shareBtn.classList.remove("copied");
+  }, 1800);
+}
 //
 function resetActiveState() {
   activeLayers.forEach(l => {
@@ -52,9 +133,10 @@ function highlightLayer(layer) {
 // PANEL CONTROLS (HARDENED)
 // ----------------------
 //
-function openDetails(feature) {
+function openDetails(feature, options = {}) {
 
   const p = feature?.properties || {};
+  activeDetailFeature = feature;
 
   const set = (id, value) => {
     const el = document.getElementById(id);
@@ -92,20 +174,33 @@ set(
   }
 
   const img = document.getElementById("detailImage");
+  const imgWrap = document.getElementById("detailImageWrap");
 
   if (img) {
     if (p.image && p.image.trim() !== "") {
       img.src = p.image;
       img.alt = p.name || "Project image";
       img.style.display = "block";
+      if (imgWrap) {
+        imgWrap.style.display = "block";
+        imgWrap.classList.remove("no-image");
+      }
     } else {
       img.style.display = "none";
       img.alt = "";
+      if (imgWrap) {
+        imgWrap.style.display = "flex";
+        imgWrap.classList.add("no-image");
+      }
     }
   }
 
   const panel = document.getElementById("detailPanel");
   if (panel) panel.classList.remove("hidden");
+
+  if (options.updateUrl !== false && p.name) {
+    setProjectUrl(feature);
+  }
 
   // Set status accent bar colour
   const accentColours = {
@@ -128,10 +223,18 @@ set(
 }
 
 function closeDetails() {
+  activeDetailFeature = null;
   const panel = document.getElementById("detailPanel");
   if (panel) {
     panel.classList.add("hidden");
     panel.classList.remove("detail-fullscreen");
+  }
+  clearProjectUrl();
+
+  const shareBtn = document.getElementById("detailShareBtn");
+  if (shareBtn) {
+    shareBtn.textContent = "Share";
+    shareBtn.classList.remove("copied");
   }
   // Restore legend on mobile
   if (isMobile()) {
@@ -237,6 +340,8 @@ fetch('UK Heat pump Map Database.csv')
     if (typeof buildFilters === "function") {
       buildFilters();
     }
+
+    openProjectFromUrl();
   });
 
 function updateLegendCounts(data) {
@@ -526,6 +631,7 @@ document.getElementById('app').appendChild(backdrop);
 
 const panel       = document.getElementById('panel');
 const panelToggle = document.getElementById('panelToggle');
+const detailShareBtn = document.getElementById('detailShareBtn');
 
 function openPanel() {
   panel.classList.remove('panel-collapsed');
@@ -555,6 +661,27 @@ if (isMobile()) {
 
 panelToggle.addEventListener('click', openPanel);
 backdrop.addEventListener('click', collapsePanel);
+
+if (detailShareBtn) {
+  detailShareBtn.addEventListener('click', async () => {
+    if (!activeDetailFeature) return;
+
+    const shareUrl = getProjectShareUrl(activeDetailFeature);
+    setProjectUrl(activeDetailFeature);
+
+    try {
+      await copyTextToClipboard(shareUrl);
+      showShareCopiedState();
+    } catch (err) {
+      detailShareBtn.textContent = "Copy failed";
+      detailShareBtn.classList.remove("copied");
+      clearTimeout(shareButtonResetTimer);
+      shareButtonResetTimer = setTimeout(() => {
+        detailShareBtn.textContent = "Share";
+      }, 1800);
+    }
+  });
+}
 
 // Legend expand / collapse
 const legendExpand   = document.getElementById('legendExpand');

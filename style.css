@@ -223,6 +223,51 @@ label {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 14px;
+}
+
+.detailHeader h2 {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+}
+
+.detail-share-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  background: rgba(18,18,18,0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.detail-share-btn:hover,
+.detail-share-btn.copied {
+  background: rgba(76,201,240,0.16);
+  border-color: rgba(76,201,240,0.38);
+  color: white;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px;
 }
 
 #closeBtn {
@@ -234,9 +279,23 @@ label {
 }
 
 /* IMAGE */
-#detailImage {
-  width: 100%;
+.detail-image-wrap {
+  position: relative;
   margin-top: 12px;
+}
+
+.detail-image-wrap.no-image {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detail-image-wrap.no-image .detail-share-btn {
+  position: static;
+}
+
+#detailImage {
+  display: block;
+  width: 100%;
   border-radius: 8px;
 }
 

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About | UK Heat Pump Map</title>
+  <meta name="description" content="Learn about the UK Heat Pump Map, an interactive resource tracking large-scale heat pump projects for district heating and industrial decarbonisation across the UK." />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #121212;
+      color: #e5e7eb;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    /* HEADER */
+    .header {
+      margin-bottom: 32px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    /* CARD */
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 22px 22px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .card h2 {
+      font-size: 16px;
+      margin: 0 0 10px 0;
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .card p,
+    .card li {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #cbd5e1;
+      margin: 0 0 10px 0;
+    }
+
+    .card p:last-child { margin-bottom: 0; }
+
+    ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    ul li {
+      margin-bottom: 6px;
+    }
+
+    /* ACCENT BAR */
+    .accent {
+      height: 3px;
+      width: 60px;
+      background: linear-gradient(90deg, #f59e0b, #fb7185);
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    /* AUTHOR CARD — slightly elevated */
+    .card-author {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .author-meta {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    .author-initials {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f59e0b, #8b7cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .author-info {
+      flex: 1;
+    }
+
+    .author-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin: 0 0 3px 0;
+    }
+
+    .author-role {
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 0;
+    }
+
+    .author-links {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .author-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #cbd5e1;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: all 0.2s ease;
+    }
+
+    .author-link:hover {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.25);
+      text-decoration: none;
+    }
+
+    /* ESCOs ROW */
+    .esco-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .esco-tag {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #94a3b8;
+    }
+
+    /* FOOTER */
+    .footer {
+      margin-top: 28px;
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+    }
+
+    a {
+      color: #f59e0b;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+
+  <a href="javascript:history.back()" class="back-button">← Back</a>
+
+  <div class="page">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="title">About</div>
+      <h1 class="terms-title">UK Heat Pump Map</h1>
+    </div>
+
+    <!-- ABOUT THE MAP -->
+    <div class="card">
+      <div class="accent"></div>
+      <h2>About the Map</h2>
+      <p>
+        The UK Heat Pump Map is an interactive database of large-scale heat pump installations
+        across the United Kingdom, focused on district energy networks and industrial heat
+        decarbonisation applications.
+      </p>
+      <p>
+        It was created to provide a single, accessible reference for engineers, developers,
+        policymakers and researchers working in the heat decarbonisation sector — a space where
+        project intelligence is often fragmented across planning portals, press releases and
+        trade publications.
+      </p>
+    </div>
+
+    <!-- ABOUT THE AUTHOR -->
+    <div class="card card-author">
+      <div class="accent"></div>
+      <h2>About the Author</h2>
+
+      <div class="author-meta">
+        <div class="author-initials">AA</div>
+        <div class="author-info">
+          <div class="author-name">Adam Al-Azki</div>
+          <div class="author-role">Director, Energy — Buro Happold &nbsp;·&nbsp; CEng MIChemE</div>
+        </div>
+      </div>
+
+      <p>
+        Adam is a Chartered Process Engineer and Director in the Energy team at
+        <a href="https://www.burohappold.com" target="_blank" rel="noopener">Buro Happold</a>,
+        specialising in district energy systems and large-scale heat decarbonisation.
+      </p>
+      <p>
+        He has worked across the sector in roles at E.ON, WSP and Buro Happold, building
+        experience in the engineering design of district energy networks and large-scale heat
+        pump systems. His project work includes major district energy schemes in Bristol
+        (Bath Road), London (King's Cross) and Brent Cross, and he has worked with leading
+        ESCOs including E.ON, Vattenfall, Veolia and Metropolitan on the design and delivery
+        of district energy infrastructure.
+      </p>
+
+      <div class="author-links">
+        <a href="https://www.linkedin.com/in/adam-al-azki-08b24923/" target="_blank" rel="noopener" class="author-link">
+          ↗ LinkedIn
+        </a>
+        <a href="https://www.burohappold.com/people/adam-al-azki/" target="_blank" rel="noopener" class="author-link">
+          ↗ Buro Happold Profile
+        </a>
+      </div>
+    </div>
+
+    <!-- SCOPE & COVERAGE -->
+    <div class="card">
+      <div class="accent"></div>
+      <h2>Scope &amp; Coverage</h2>
+      <p>
+        The map focuses on large-scale heat pump installations in non-domestic applications.
+        Projects are included where heat pumps form a primary or significant heat source within
+        a district energy network or industrial process — typically systems of 500 kW capacity
+        and above.
+      </p>
+      <ul>
+        <li>District energy and heat network schemes</li>
+        <li>Industrial and process heat applications</li>
+        <li>Large campus and mixed-use developments</li>
+        <li>Waste heat recovery and energy-from-water projects</li>
+      </ul>
+      <p>
+        Domestic and small commercial heat pump installations are outside the scope of this map.
+      </p>
+    </div>
+
+    <!-- METHODOLOGY -->
+    <div class="card">
+      <div class="accent"></div>
+      <h2>Methodology &amp; Data Sources</h2>
+      <p>
+        Projects are identified and verified through a combination of publicly available sources
+        including planning applications, environmental permits, developer announcements, published
+        case studies and trade press. Technical attributes — including heat pump type, capacity,
+        refrigerant class, flow temperature and manufacturer — are recorded where reliably
+        documented.
+      </p>
+      <p>
+        Project locations are approximate and reflect the site centroid rather than the precise
+        plant room location. Capacity figures represent thermal output where stated, or electrical
+        input where thermal data is unavailable.
+      </p>
+    </div>
+
+    <!-- UPDATES & ACCURACY -->
+    <div class="card">
+      <div class="accent"></div>
+      <h2>Updates &amp; Accuracy</h2>
+      <p>
+        The dataset is updated on an ongoing basis as new projects are commissioned, announced
+        or brought to the author's attention. Project status reflects the best available
+        information at the time of the last update and may not capture recent changes.
+      </p>
+      <p>
+        If you identify a missing project, an inaccuracy, or a change in project status, please
+        get in touch via <a href="mailto:info@ukheatpumpmap.com">info@ukheatpumpmap.com</a>.
+      </p>
+    </div>
+
+    <!-- GET INVOLVED -->
+    <div class="card">
+      <div class="accent"></div>
+      <h2>Get Involved</h2>
+      <p>
+        The map is most useful when it is comprehensive. Contributions from those working directly
+        in the sector are welcomed — whether you are a heat pump manufacturer, system developer,
+        network operator, ESCO, local authority or consultant.
+      </p>
+      <p>
+        If you would like to suggest a project, share technical data, or discuss the map in the
+        context of a specific scheme, please reach out to
+        <a href="mailto:info@ukheatpumpmap.com">info@ukheatpumpmap.com</a>.
+      </p>
+    </div>
+
+    <div class="footer">
+      UK Heat Pump Map &nbsp;·&nbsp; About
+    </div>
+
+  </div>
+
+</body>
+</html>
