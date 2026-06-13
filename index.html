@@ -62,30 +62,68 @@
 
     <div id="panel">
 
-      <h1>UK Heat Pump Map</h1>
+      <nav class="side-nav" aria-label="Site navigation">
+        <a href="index.html" class="side-nav-link is-active" aria-label="Map" title="Map">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+            <path d="M9 3v15"></path>
+            <path d="M15 6v15"></path>
+          </svg>
+          <span>Map</span>
+        </a>
+        <a href="about.html" class="side-nav-link" aria-label="About" title="About">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 10v6"></path>
+            <path d="M12 7h.01"></path>
+          </svg>
+          <span>About</span>
+        </a>
+        <a href="resources.html" class="side-nav-link" aria-label="Resources" title="Resources">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93"></path>
+            <path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07"></path>
+          </svg>
+          <span>Resources</span>
+        </a>
+        <a href="terms.html" class="side-nav-link" aria-label="Terms of Use" title="Terms of Use">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"></path>
+            <path d="M14 3v5h5"></path>
+            <path d="M9 13h6"></path>
+            <path d="M9 17h4"></path>
+          </svg>
+          <span>Terms</span>
+        </a>
+        <button id="contactBtn" class="side-nav-link side-nav-button" type="button" aria-label="Contact" title="Contact">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16v12H4Z"></path>
+            <path d="m4 7 8 6 8-6"></path>
+          </svg>
+          <span>Contact</span>
+        </button>
+      </nav>
 
-      <div class="subtitle">
-        Mapping the UK's journey to heat decarbonisation
+      <div class="panel-content">
+        <h1>UK Heat Pump Map</h1>
+
+        <div class="subtitle">
+          Mapping the UK's journey to heat decarbonisation
+        </div>
+
+        <div class="description">
+          This map captures large-scale heat pumps used in district heating and industrial heat applications across the UK.
+        </div>
+
+        <!-- FILTERS -->
+        <div id="filterContainer" data-nosnippet></div>
+
+        <button id="resetFilters" class="reset-btn-panel">↺ Reset filters</button>
+
+        <div id="footerDisclaimer">
+          This map is provided for informational purposes only. While reasonable efforts have been made to ensure accuracy, no guarantee is given as to completeness or reliability. It should not be used as a definitive operational or engineering dataset.
+        </div>
       </div>
-
-      <div class="description">
-        This map captures large-scale heat pumps used in district heating and industrial heat applications across the UK.
-      </div>
-
-      <!-- FILTERS -->
-      <div id="filterContainer" data-nosnippet></div>
-
-      <button id="resetFilters" class="reset-btn-panel">↺ Reset filters</button>
-
-  <div id="footerDisclaimer">
-    This map is provided for informational purposes only. While reasonable efforts have been made to ensure accuracy, no guarantee is given as to completeness or reliability. It should not be used as a definitive operational or engineering dataset.
-  </div>
-
-<div class="panel-footer">
-  <a href="about.html" class="terms-button">About</a>
-  <a href="terms.html" class="terms-button">Terms of Use</a>
-  <a href="#" id="contactBtn" class="terms-button">Contact</a>
-</div>
     </div>
 
     <!-- ========================================= -->
