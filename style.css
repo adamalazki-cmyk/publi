@@ -118,6 +118,12 @@ body.map-page {
   box-shadow: inset 3px 0 0 #4cc9f0;
 }
 
+.side-nav-link.search-open {
+  background: rgba(76, 201, 240, 0.1);
+  border-color: rgba(76, 201, 240, 0.28);
+  color: #4cc9f0;
+}
+
 .side-nav-link:hover span,
 .side-nav-link:focus-visible span {
   opacity: 1;
@@ -1028,13 +1034,25 @@ input[type="checkbox"] {
 #mapSearch {
   position: absolute;
   top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 376px; /* panel width (360) + sidebar (56) + gap (16) → anchored to panel right edge */
   width: 320px;
   z-index: 1500;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Animate in/out */
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: top left;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+  visibility: visible;
+}
+
+#mapSearch.search-hidden {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 #mapSearchInputWrap {
@@ -1156,6 +1174,11 @@ input[type="checkbox"] {
 
 #panelToggle {
   display: none; /* hidden on desktop */
+}
+
+/* Mobile search toggle — hidden on desktop */
+#mobileSearchToggle {
+  display: none;
 }
 
 /* =========================================
@@ -1346,13 +1369,53 @@ input[type="checkbox"] {
     right: 10px;
     width: auto;
     transform: none;
+    transform-origin: bottom center;
     z-index: 3600;
-    flex-direction: column; /* results div is first in DOM, so sits above */
+    flex-direction: column;
     gap: 6px;
   }
 
-  /* Results sit above bar naturally since they come first in DOM */
-  #mapSearchResults {
-    /* no overrides needed — normal flow within flex column */
+  #mapSearch.search-hidden {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Mobile search toggle button */
+  #mobileSearchToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 58px; /* below hamburger (10px top + 40px height + 8px gap) */
+    left: 10px;
+    z-index: 4000;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(18, 18, 18, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    color: #ffffff;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  #mobileSearchToggle:hover {
+    background: rgba(40, 40, 40, 0.92);
+  }
+
+  #mobileSearchToggle.search-active {
+    background: rgba(76, 201, 240, 0.12);
+    border-color: rgba(76, 201, 240, 0.35);
+  }
+
+  #mobileSearchToggle.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.85);
   }
 }

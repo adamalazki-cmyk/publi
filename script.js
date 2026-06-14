@@ -638,6 +638,10 @@ function openPanel() {
   backdrop.classList.remove('backdrop-hidden');
   panelToggle.classList.add('hidden');
   panelToggle.setAttribute('aria-expanded', 'true');
+  // Hide mobile search toggle while panel is open
+  if (mobileSearchToggle) mobileSearchToggle.classList.add('hidden');
+  // Also close search if open
+  if (mapSearchEl && !mapSearchEl.classList.contains('search-hidden')) hideSearch();
   // Disable map pointer events so touch on panel doesn't scroll the map
   document.getElementById('map').style.pointerEvents = 'none';
 }
@@ -647,6 +651,8 @@ function collapsePanel() {
   backdrop.classList.add('backdrop-hidden');
   panelToggle.classList.remove('hidden');
   panelToggle.setAttribute('aria-expanded', 'false');
+  // Restore mobile search toggle
+  if (mobileSearchToggle) mobileSearchToggle.classList.remove('hidden');
   document.getElementById('map').style.pointerEvents = '';
 }
 
@@ -755,9 +761,67 @@ modal.addEventListener('click', (e) => {
 // MAP SEARCH
 // ----------------------
 
-const searchInput   = document.getElementById('mapSearchInput');
-const searchResults = document.getElementById('mapSearchResults');
-const searchClear   = document.getElementById('mapSearchClear');
+const searchInput        = document.getElementById('mapSearchInput');
+const searchResults      = document.getElementById('mapSearchResults');
+const searchClear        = document.getElementById('mapSearchClear');
+const mapSearchEl        = document.getElementById('mapSearch');
+const searchNavBtn       = document.getElementById('searchNavBtn');
+const mobileSearchToggle = document.getElementById('mobileSearchToggle');
+
+function openSearch() {
+  mapSearchEl.classList.remove('search-hidden');
+  if (searchNavBtn) searchNavBtn.classList.add('search-open');
+  if (mobileSearchToggle) mobileSearchToggle.classList.add('search-active');
+  // Small delay so the transition runs after display kicks in
+  requestAnimationFrame(() => {
+    searchInput.focus();
+  });
+}
+
+function hideSearch() {
+  mapSearchEl.classList.add('search-hidden');
+  if (searchNavBtn) searchNavBtn.classList.remove('search-open');
+  if (mobileSearchToggle) mobileSearchToggle.classList.remove('search-active');
+  searchInput.value = '';
+  searchClear.style.display = 'none';
+  closeSearch();
+}
+
+if (searchNavBtn) {
+  searchNavBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = mapSearchEl.classList.contains('search-hidden');
+    if (isHidden) {
+      openSearch();
+    } else {
+      hideSearch();
+    }
+  });
+}
+
+if (mobileSearchToggle) {
+  mobileSearchToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = mapSearchEl.classList.contains('search-hidden');
+    if (isHidden) {
+      openSearch();
+    } else {
+      hideSearch();
+    }
+  });
+}
+
+// Hide search when clicking outside of #mapSearch, searchNavBtn, and mobileSearchToggle
+document.addEventListener('click', (e) => {
+  if (
+    !mapSearchEl.classList.contains('search-hidden') &&
+    !e.target.closest('#mapSearch') &&
+    !e.target.closest('#searchNavBtn') &&
+    !e.target.closest('#mobileSearchToggle')
+  ) {
+    hideSearch();
+  }
+});
 
 function escapeHtml(str) {
   return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -778,9 +842,7 @@ function closeSearch() {
 }
 
 function selectResult(feature) {
-  searchInput.value = '';
-  searchClear.style.display = 'none';
-  closeSearch();
+  hideSearch();
   searchInput.blur(); // dismiss keyboard before flying
 
   const coords = feature.geometry.coordinates;
@@ -864,10 +926,7 @@ searchClear.addEventListener('click', () => {
   searchInput.focus();
 });
 
-// Close results when clicking outside
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('#mapSearch')) closeSearch();
-});
+// (outside-click to close search is handled by the unified handler above)
 
 // Keyboard navigation
 searchInput.addEventListener('keydown', (e) => {
@@ -890,7 +949,6 @@ searchInput.addEventListener('keydown', (e) => {
   } else if (e.key === 'Enter' && active) {
     active.click();
   } else if (e.key === 'Escape') {
-    searchInput.blur();
-    closeSearch();
+    hideSearch();
   }
 });
