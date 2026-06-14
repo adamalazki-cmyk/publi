@@ -1382,6 +1382,11 @@ input[type="checkbox"] {
     pointer-events: none;
   }
 
+  /* Search nav button not needed on mobile — mobileSearchToggle handles it */
+  #searchNavBtn {
+    display: none;
+  }
+
   /* Mobile search toggle button */
   #mobileSearchToggle {
     display: flex;
