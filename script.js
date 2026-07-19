@@ -178,6 +178,15 @@ set(
 
   if (img) {
     if (p.image && p.image.trim() !== "") {
+      img.onerror = () => {
+        img.onerror = null;
+        img.style.display = "none";
+        img.alt = "";
+        if (imgWrap) {
+          imgWrap.style.display = "flex";
+          imgWrap.classList.add("no-image");
+        }
+      };
       img.src = p.image;
       img.alt = p.name || "Project image";
       img.style.display = "block";
