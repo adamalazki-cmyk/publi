@@ -29,7 +29,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 
 /* ---------- shell ---------- */
 .app{display:grid;grid-template-rows:44px 1fr 24px;height:100vh}
-.shell{display:grid;grid-template-columns:54px 1fr 348px;min-height:0}
+.shell{display:grid;grid-template-columns:164px 1fr 348px;min-height:0}
 .stagewrap{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--stage);border-left:1px solid var(--line);border-right:1px solid var(--line)}
 
 /* ---------- topbar ---------- */
@@ -47,14 +47,18 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .tb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7}
 
 /* ---------- tool rail ---------- */
-.rail{background:var(--panel);display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;overflow-y:auto}
-.tool{width:40px;height:38px;border-radius:var(--r);background:transparent;border:1px solid transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--dim);position:relative}
-.tool:hover{background:var(--panel3);color:var(--text);border-color:var(--line2)}
-.tool.on{background:var(--text);color:var(--accent);border-color:var(--text)}
-.tool svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.tool i{font-family:var(--mono);font-size:8px;font-style:normal;opacity:.75}
-.railsep{width:26px;height:1px;background:var(--line);margin:5px 0}
-.tool[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:50px;top:50%;transform:translateY(-50%);background:#111111;border:none;color:#ffffff;padding:6px 10px;border-radius:var(--r);white-space:nowrap;font-size:11.5px;z-index:60;pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.28);line-height:1.45;max-width:260px;white-space:normal}
+.rail{background:var(--panel);display:flex;flex-direction:column;gap:0;padding:6px 0 12px;overflow-y:auto;border-right:1px solid var(--line)}
+.tool{width:100%;border-radius:0;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;display:flex;flex-direction:row;align-items:center;gap:9px;padding:7px 10px;color:var(--dim);position:relative;text-align:left}
+.tool:hover{background:var(--panel2);color:var(--text)}
+.tool.on{background:var(--text);color:var(--accent);border-left-color:var(--accent)}
+.tool svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tool-lbl{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.tool-lbl b{font-size:11.5px;font-weight:600;color:inherit;white-space:nowrap}
+.tool-lbl i{font-family:var(--mono);font-size:9px;font-style:normal;color:var(--dim2)}
+.tool.on .tool-lbl i{color:rgba(196,214,0,.75)}
+.railsep{height:1px;background:var(--line);margin:5px 8px}
+.rail-hd{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim2);font-weight:700;padding:12px 12px 4px;font-family:var(--mono)}
+/* tooltip suppressed — tool names now shown inline */
 
 /* ---------- canvas ---------- */
 #cv{flex:1;display:block;width:100%;cursor:crosshair}
@@ -286,7 +290,7 @@ const PIPES=[
  {dn:900, d:914.0, t:10.0, As:28401,Dc:[1100,1200,1300]},
  {dn:1000,d:1016.0,t:11.0, As:34718,Dc:[1200,1300,1400]}
 ];
-const pipeByDn=dn=>PIPES.find(p=>p.dn===dn)||PIPES[7];
+const pipeByDn=dn=>{const d=+dn;return PIPES.find(p=>p.dn===d)||PIPES[7];};
 
 /* Limit state C1 — local stability (buckling/folding) of the service pipe.
    Max axial stress, from the EN 13941 rm/t limit curve as tabulated
@@ -397,6 +401,7 @@ function blankModel(){
 }
 let M=blankModel();
 let R=null;
+let REF={};   /* id -> tag string, rebuilt each analysis */
 let sel={kind:null,id:null};
 let hover={kind:null,id:null};
 
@@ -918,6 +923,36 @@ function analyse(){
             lat.toFixed(0)+' mm lateral movement imposed on the DN'+be.dn+' branch.',
             'Provide '+padLayers(lat)+' x 40 mm pad layer(s) over '+padL.toFixed(1)+
             ' m from the tee, both sides of the branch.','LOGSTOR branch detail',{k:'edge',id:be.id});
+
+        /* BR-5: maximum straight length before first bend -------------------
+           The branch acts as a separate bonded run. The maximum straight
+           length between its tee (a fixed or semi-fixed end) and a bend or
+           anchor is governed by the same L(all) formula as the main pipe.
+           LOGSTOR quotes Lall = sigma_all * As / F for the branch pipe.
+           Exceeding 2*Lall means the stress in the centre of the branch
+           would exceed sigma_all even with expansion at both ends, so a
+           bend is needed at or before Lall from the tee.                  */
+        const bLall=A.sigAll*bp.As/Math.max(bp.F*1000,0.01);
+        ER[be.id].branchLall=bLall;
+        const bStraight=bS?bS.L:edgeLen(be);   /* free straight from tee to first bend/end */
+        if(bStraight>2*bLall)
+          push('high','BR-5','Branch straight length exceeds the installation length',
+            'DN'+be.dn+' branch runs '+bStraight.toFixed(1)+
+            ' m straight before its first bend or anchor, against a maximum L(all) of '+
+            bLall.toFixed(1)+' m for this pipe and soil. Beyond 2\u00d7L(all) = '+
+            (2*bLall).toFixed(1)+' m, axial stress in the branch centre would exceed '+
+            A.sigAll.toFixed(0)+' MPa even with free ends at both ends.',
+            'Introduce a bend in the branch within '+bLall.toFixed(1)+
+            ' m of the tee so the branch can relieve its own thermal stress, or anchor the branch within that length.',
+            'EN 13941 / LOGSTOR Lall',{k:'edge',id:be.id});
+        else if(bStraight>1.5*bLall)
+          push('watch','BR-6','Branch straight length is approaching the installation length',
+            'DN'+be.dn+' branch is '+bStraight.toFixed(1)+
+            ' m straight (L(all) = '+bLall.toFixed(1)+' m, '+
+            (100*bStraight/(2*bLall)).toFixed(0)+'% of the 2\u00d7L(all) limit).',
+            'A bend or anchor should be introduced within '+(2*bLall).toFixed(1)+
+            ' m of the tee.',
+            'EN 13941 / LOGSTOR Lall',{k:'edge',id:be.id});
       });
       teeReport.push(teeRow);
       if(dTee>3)
@@ -1171,6 +1206,7 @@ function analyse(){
   F.sort((a,b)=>order[a.sev]-order[b.sev]);
   F.forEach((f,i)=>f.id='F'+(i+1));
 
+  buildRefs(NR,ER);
   return{ok:true,A,th,sections,NR,ER,runs,findings:F,tally,
     teeReport,bendReport,branchReport,
     summary:{totLen,maxUtil,maxSig,maxMove,nSec:sections.length,
@@ -1178,11 +1214,29 @@ function analyse(){
       cls:A.cls,sigAll:A.sigAll,c1:A.c1,dsFat:A.dsFat,N:A.N}};
 }
 
+function buildRefs(NR,ER){
+  REF={};
+  let j=0,ps=0,fp=0;
+  for(const id in ER) REF[id]='PS-'+(++ps).toString().padStart(3,'0');
+  const ordered=[...Object.keys(NR)].sort((a,b)=>{
+    const rank=r=>r==='tee'?0:r==='anchor'?1:r==='bend'?2:r==='free'?3:4;
+    return rank(NR[a].role)-rank(NR[b].role);
+  });
+  for(const id of ordered){
+    const r=NR[id]; if(r.role==='weld'||r.role==='orphan')continue;
+    REF[id]='J-'+(++j).toString().padStart(3,'0');
+  }
+  for(const id of ordered){
+    const r=NR[id]; if(!r.pad||!r.pad.layers)continue;
+    REF[id+'_fp']='FP-'+(++fp).toString().padStart(3,'0');
+  }
+}
+
 /* ============================ 4. VIEW / RENDER ========================== */
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 let V={sc:6,tx:0,ty:0,w:0,h:0,dpr:1};
 let mouse={x:0,y:0,wx:0,wy:0,down:false};
-let draw={active:false,pts:[],lastNode:null,preview:null,snap:null};
+let draw={active:false,pts:[],lastNode:null,preview:null,snap:null,branchDir:null};
 let tool='route';
 
 const W2S=(x,y)=>({x:x*V.sc+V.tx,y:y*V.sc+V.ty});
@@ -1276,7 +1330,8 @@ function render(){
       if(ang>Math.PI/2||ang<-Math.PI/2)ang+=Math.PI;
       ctx.save();ctx.translate(mx,my);ctx.rotate(ang);
       ctx.font='500 10px "IBM Plex Mono",monospace';ctx.textAlign='center';
-      const txt='DN'+e.dn+'/S'+(e.series||2)+'  '+edgeLen(e).toFixed(1)+' m';
+      const ref=(R&&REF[e.id])?REF[e.id]+' ':'';
+      const txt=ref+'DN'+e.dn+'/S'+(e.series||2)+'  '+edgeLen(e).toFixed(1)+' m';
       const tw=ctx.measureText(txt).width;
       ctx.fillStyle='rgba(255,255,255,.86)';ctx.fillRect(-tw/2-4,-casW/2-15,tw+8,13);
       ctx.fillStyle='#54544e';ctx.fillText(txt,0,-casW/2-5);
@@ -1395,9 +1450,16 @@ function drawNode(n){
         ctx.beginPath();ctx.arc(p.x,p.y,S*0.75,0,7);ctx.fill();ctx.stroke();}
       else{ctx.fillStyle='#5a5a52';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2.4,S*0.42),0,7);ctx.fill();}
   }
-  if(n.label&&V.sc>2){
-    ctx.font='500 10px "IBM Plex Mono",monospace';ctx.fillStyle='#33332e';ctx.textAlign='center';
-    ctx.fillText(n.label,p.x,p.y-S-8);
+  if(V.sc>1.5){
+    ctx.font='500 9.5px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    const jtag=R?REF[n.id]:''; const fptag=R?REF[n.id+'_fp']:'';
+    const lbl=(n.label?n.label+' ':'')+(fptag?fptag:(jtag||''));
+    if(lbl){
+      ctx.fillStyle='rgba(255,255,255,.82)';
+      const tw2=ctx.measureText(lbl).width;
+      ctx.fillRect(p.x-tw2/2-3,p.y-S-18,tw2+6,12);
+      ctx.fillStyle='#22221e'; ctx.fillText(lbl,p.x,p.y-S-8);
+    }
   }
 }
 
@@ -1468,14 +1530,38 @@ function drawBadges(){
     at[key]=at[key]||{x:n.x,y:n.y,list:[]}; at[key].list.push(f);
   });
   Object.values(at).forEach(g=>{
-    const p=W2S(g.x,g.y);
+    const pw=W2S(g.x,g.y);
     const worst=g.list.reduce((a,b)=>({critical:0,high:1,watch:2,info:3}[a.sev]<=
       {critical:0,high:1,watch:2,info:3}[b.sev]?a:b));
     const sels=sel.kind==='find'&&g.list.some(f=>f.id===sel.id);
+    /* place badge away from pipe segments leaving this node */
+    let bx=pw.x+14, by=pw.y-14;
+    const es2=edgesAt(g.x!==undefined?Object.keys(M.nodes).find(nid=>{
+      const n=M.nodes[nid];return Math.abs(n.x-g.x)<0.5&&Math.abs(n.y-g.y)<0.5;})||'':'');
+    if(true){ /* always compute a safe offset */
+      const node=Object.values(M.nodes).find(n=>Math.abs(W2S(n.x,n.y).x-pw.x)<8&&Math.abs(W2S(n.x,n.y).y-pw.y)<8);
+      if(node){
+        const segs=edgesAt(node.id);
+        /* sum unit vectors pointing away from node */
+        let sx=0,sy=0;
+        segs.forEach(e=>{const o=M.nodes[other(e,node.id)];if(!o)return;
+          const L=Math.hypot(o.x-node.x,o.y-node.y)||1;
+          sx+=(node.x-o.x)/L; sy+=(node.y-o.y)/L;});
+        const sl=Math.hypot(sx,sy)||1; sx/=sl; sy/=sl;
+        /* if the push direction is nearly zero (symmetric tee etc), default to top-right */
+        if(sl<0.1){sx=0.7;sy=-0.7;}
+        /* perpendicular to the principal push gives a second option; pick whichever keeps badge on screen */
+        const r2=sels?9:7, off=r2+16;
+        bx=pw.x+sx*off; by=pw.y+sy*off;
+      }
+    }
     ctx.fillStyle=SEVC[worst.sev];ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(p.x+13,p.y-13,sels?9:7,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(bx,by,sels?9:7,0,7);ctx.fill();ctx.stroke();
     ctx.fillStyle='#ffffff';ctx.font='700 9px "IBM Plex Mono",monospace';ctx.textAlign='center';
-    ctx.fillText(g.list.length>1?String(g.list.length):'!',p.x+13,p.y-10);
+    ctx.fillText(g.list.length>1?String(g.list.length):'!',bx,by+3);
+    /* thin line from badge to node */
+    ctx.strokeStyle=SEVC[worst.sev];ctx.lineWidth=1;ctx.globalAlpha=.5;
+    ctx.beginPath();ctx.moveTo(pw.x,pw.y);ctx.lineTo(bx,by);ctx.stroke();ctx.globalAlpha=1;
   });
 }
 
@@ -1551,47 +1637,58 @@ function drawHud(){
 
 /* ============================ 5. INTERACTION ============================ */
 const TOOLS=[
- {id:'select',k:'V',tip:'Select & move (V)',svg:'<path d="M4 3l7 17 2.5-6.5L20 11z"/>'},
- {id:'route', k:'R',tip:'Draw route (R) — click to place, double-click or Enter to finish',
+ {hd:'Draw'},
+ {id:'select', k:'V', name:'Select', sub:'move nodes',
+   svg:'<path d="M4 3l7 17 2.5-6.5L20 11z"/>'},
+ {id:'route',  k:'R', name:'Route', sub:'click to place pipe',
    svg:'<path d="M3 20h6l4-8h8"/><circle cx="3" cy="20" r="1.6"/><circle cx="21" cy="12" r="1.6"/>'},
- {id:'branch',k:'B',tip:'Branch off a pipe (B) — click on a pipe to tee off',
+ {id:'branch', k:'B', name:'Branch', sub:'tee off a pipe',
    svg:'<path d="M3 6h18M12 6v14"/>'},
- {id:'erase', k:'X',tip:'Erase (X)',svg:'<path d="M4 20h16M6 16L16 6l4 4L10 20z"/>'},
+ {id:'erase',  k:'X', name:'Erase', sub:'node or pipe',
+   svg:'<path d="M4 20h16M6 16L16 6l4 4L10 20z"/>'},
  {sep:1},
- {id:'anchor',k:'A',tip:'Fixed point / anchor (A) — click a node',
+ {hd:'Mark node'},
+ {id:'anchor', k:'A', name:'Anchor', sub:'fixed point',
    svg:'<rect x="6" y="6" width="12" height="12"/><path d="M6 18L18 6M6 6l12 12"/>'},
- {id:'free',  k:'F',tip:'Free end (F) — click a node',svg:'<circle cx="12" cy="12" r="6"/>'},
- {id:'loop',  k:'U',tip:'U-loop / expansion element (U) — click a node',
-   svg:'<path d="M6 20V11a6 6 0 0112 0v9"/>'},
- {id:'ecomp', k:'E',tip:'E-comp one-shot compensator (E) — click a node',
+ {id:'free',   k:'F', name:'Free end', sub:'terminal / open end',
+   svg:'<circle cx="12" cy="12" r="6"/>'},
+ {id:'ecomp',  k:'E', name:'E-comp', sub:'one-shot compensator',
    svg:'<path d="M8 5v14M16 5v14M8 12h8"/>'},
- {id:'valve', k:'W',tip:'Valve (W) — click a node',
+ {id:'valve',  k:'W', name:'Valve', sub:'isolation valve',
    svg:'<path d="M5 6l14 12M5 18L19 6M5 6v12M19 6v12"/>'},
- {id:'clear', k:'',tip:'Clear node marker — back to automatic',
+ {id:'clear',  k:'', name:'Clear mark', sub:'back to automatic',
    svg:'<circle cx="12" cy="12" r="7"/><path d="M9 15l6-6"/>'},
  {sep:1},
- {id:'insuloop',k:'O',tip:'Insert U-loop (O) — click a pipe to break it in, or press while drawing to append. Shift flips the side.',
+ {hd:'Insert expansion'},
+ {id:'insuloop',k:'O', name:'U-loop', sub:'O to insert / Shift flips',
    svg:'<path d="M5 20V10a5 5 0 0110 0v10"/><path d="M3 20h4M13 20h4"/>'},
- {id:'insz',k:'Z',tip:'Insert Z-offset (Z) — click a pipe to break it in, or press while drawing to append. Shift flips the side.',
+ {id:'insz',    k:'Z', name:'Z-offset', sub:'Z to insert / Shift flips',
    svg:'<path d="M4 7h7v10h9"/>'},
+ {id:'loop',    k:'U', name:'Loop mark', sub:'flag existing node',
+   svg:'<path d="M6 20V11a6 6 0 0112 0v9"/>'},
  {sep:1},
- {id:'fit',   k:'',tip:'Zoom to fit (Home)',
+ {hd:'View'},
+ {id:'fit',    k:'', name:'Fit view', sub:'Home key',
    svg:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',act:()=>fit()},
- {id:'tlabel',k:'',tip:'Labels on/off',svg:'<path d="M4 7h16M4 12h10M4 17h13"/>',
+ {id:'tlabel', k:'', name:'Labels', sub:'pipe DN / length',
+   svg:'<path d="M4 7h16M4 12h10M4 17h13"/>',
    act:()=>{M.view.labels=!M.view.labels;render();syncRail();}},
- {id:'tpad',  k:'',tip:'Foam pads on/off',
+ {id:'tpad',   k:'', name:'Foam pads', sub:'show on canvas',
    svg:'<rect x="3" y="9" width="18" height="6" rx="1"/><path d="M7 9v6M11 9v6M15 9v6"/>',
    act:()=>{M.view.pads=!M.view.pads;render();syncRail();}},
- {id:'tmove', k:'',tip:'Movement vectors on/off',svg:'<path d="M4 12h14M14 7l5 5-5 5"/>',
+ {id:'tmove',  k:'', name:'Movements', sub:'arrow vectors',
+   svg:'<path d="M4 12h14M14 7l5 5-5 5"/>',
    act:()=>{M.view.moves=!M.view.moves;render();syncRail();}}
 ];
 function buildRail(){
   const r=document.getElementById('rail'); r.innerHTML='';
   TOOLS.forEach(t=>{
+    if(t.hd){const d=document.createElement('div');d.className='rail-hd';d.textContent=t.hd;r.appendChild(d);return;}
     if(t.sep){const d=document.createElement('div');d.className='railsep';r.appendChild(d);return;}
     const b=document.createElement('button');
-    b.className='tool';b.dataset.id=t.id;b.dataset.tip=t.tip;
-    b.innerHTML='<svg viewBox="0 0 24 24">'+t.svg+'</svg>'+(t.k?'<i>'+t.k+'</i>':'');
+    b.className='tool';b.dataset.id=t.id;
+    b.innerHTML='<svg viewBox="0 0 24 24">'+t.svg+'</svg>'+
+      '<div class="tool-lbl"><b>'+t.name+'</b>'+(t.sub?'<i>'+t.sub+(t.k?' &middot; '+t.k:'')+'</i>':'')+'</div>';
     b.onclick=(ev)=>{
       if(t.act){t.act();return;}
       if((t.id==='insuloop'||t.id==='insz')&&draw.active){
@@ -1649,11 +1746,37 @@ function splitEdge(e,t){
 /* ---- U-loop / Z-offset insertion ---------------------------------------
    Both build real, editable pipe geometry (not just a marker) so the
    pad-fit and Z/loop-leg checks in the engine apply to them directly.    */
-function loopDefaults(dn){
-  return{depth:Math.max(2.5,Math.min(8,2.5+dn/120)),
-         width:Math.max(1.5,Math.min(5,1.5+dn/200))};
+/* Minimum loop leg = the pad zone F that the arriving movement will need.
+   F = 0.124 * d^0.48 * dL^0.25.   We estimate dL as the full friction-length
+   movement of the main pipe at 20 % margin. Pads then exactly fill the leg,
+   which is the minimum acceptable.  Add one Dc width on each end for the bend
+   itself.  The width (crown) just needs to clear two casings + working space. */
+function minLegForPads(dn){
+  const pip=pipeByDn(dn);
+  const ser=M.def.series||2, Dc=pip.Dc[ser-1]/1000;
+  const th=thermal();
+  const F_est=friction(pip,ser,{g:M.soil.g,K0:M.soil.K0,mu:M.soil.mu,gwl:M.soil.gwl},M.soil.cover);
+  const As=pip.As, E=th.E, al=th.al, dT=th.dTgov;
+  const sigM=Math.max(1,dT*E*al);
+  const LF=sigM*As/Math.max(F_est*1000,0.01);
+  const Lm=Math.min(LF,300)*1000; /* mm, cap at 300 m section */
+  const dL_mm=Math.max(10,Math.min(100, al*dT*Lm - F_est*1000*Lm*Lm/(2*E*As)));
+  /* pad zone F in metres — this IS the minimum leg.
+     Use 1.15 * dL to account for LOOP-1 movement propagation.           */
+  const dL_safe=Math.min(120, dL_mm*1.15);
+  const F_m=0.124*Math.pow(pip.d,0.48)*Math.pow(dL_safe,0.25);
+  /* add Dc on each end so the bend node sits clear of the pad zone */
+  return Math.ceil((F_m + Dc)*10)/10;
 }
-function zOffsetDefault(dn){return Math.max(2,Math.min(6,2+dn/150));}
+function loopDefaults(dn){
+  const depth=Math.max(2, minLegForPads(dn));
+  const pip=pipeByDn(dn), ser=M.def.series||2, Dc=pip.Dc[ser-1]/1000;
+  const width=Math.max(1.0, Math.ceil((Dc*2+0.4)*10)/10);
+  return{depth,width};
+}
+function zOffsetDefault(dn){
+  return Math.max(1.5, minLegForPads(dn));
+}
 function unitPerp(dir,flip){return flip?{x:dir.y,y:-dir.x}:{x:-dir.y,y:dir.x};}
 
 /* click on an existing straight pipe: split it and splice the detour in,
@@ -1675,7 +1798,8 @@ function insertDetourOnEdge(kind,he,ev){
   addEdge(exit,farB,opts);
   select('node',splitNode);
   snapshot(); run();
-  toast((kind==='uloop'?'U-loop':'Z-offset')+' inserted \u2014 drag its nodes to resize');
+  autoResizeLoopAfterInsert(splitNode, kind);
+  toast((kind==='uloop'?'U-loop':'Z-offset')+' inserted \u2014 dimensions sized for pad fit');
 }
 
 /* trigger mid-route: append the detour at the current drawing tip and
@@ -1699,7 +1823,8 @@ function insertDetourWhileDrawing(kind,ev){
   const exit=buildDetour(kind,nid,dir,opts,flip);
   draw.lastNode=exit; draw.preview=null;
   snapshot(); run();
-  toast((kind==='uloop'?'U-loop':'Z-offset')+' added \u2014 keep drawing or press Enter to finish');
+  autoResizeLoopAfterInsert(exit, kind);
+  toast((kind==='uloop'?'U-loop':'Z-offset')+' added \u2014 dimensions sized for pad fit');
 }
 
 /* shared geometry builder used by both entry points above */
@@ -1713,12 +1838,64 @@ function buildDetour(kind,fromId,dir,opts,flip){
     addEdge(p1,p2,opts);
     const p3=addNode(M.nodes[p2].x-perp.x*depth,M.nodes[p2].y-perp.y*depth,'auto');
     addEdge(p2,p3,opts);
+    /* tag all internal nodes so auto-resize can identify them */
+    M.nodes[p1]._loop=true; M.nodes[p2]._loop=true; M.nodes[p3]._loop=true;
     return p3;
   }
   const off=zOffsetDefault(opts.dn);
   const p1=addNode(A.x+perp.x*off,A.y+perp.y*off,'auto');
+  M.nodes[p1]._loop=true;
   addEdge(fromId,p1,opts);
   return p1;
+}
+
+/* auto-resize a just-inserted loop/Z so all pad legs fit ------------------
+   Runs after the first analysis, which gives us the actual delivered movement.
+   Walks nodes on the loop and expands legs that have PAD-1 pending.           */
+function autoResizeLoopAfterInsert(tipId, kind){
+  if(!R)return;
+  let changed=false;
+  const visited=new Set(), queue=[tipId];
+  for(let depth=0;queue.length&&depth<8;depth++){
+    const cur=queue.shift(); if(visited.has(cur))continue; visited.add(cur);
+    const r=R.NR[cur]; if(!r||!r.pad)continue;
+    r.pad.legs.forEach(leg=>{
+      if(leg.F<=leg.avail+0.05)return;
+      const e=M.edges[leg.e]; if(!e)return;
+      const nA=M.nodes[e.a],nB=M.nodes[e.b]; if(!nA||!nB)return;
+      const need=leg.F+0.1;   /* F + 100 mm clearance */
+      /* only expand the far end (degree ≤ 2 = not a main junction) */
+      /* only expand nodes that are interior to the detour */
+      const fa=M.nodes[e.a]&&M.nodes[e.a]._loop, fb=M.nodes[e.b]&&M.nodes[e.b]._loop;
+      const farId=fb?e.b:(fa?e.a:null);
+      if(!farId)return;
+      const nFar=M.nodes[farId], nNear=M.nodes[farId===e.b?e.a:e.b];
+      const L=Math.hypot(nFar.x-nNear.x,nFar.y-nNear.y)||1;
+      const ux=(nFar.x-nNear.x)/L, uy=(nFar.y-nNear.y)/L;
+      M.nodes[farId].x=nNear.x+ux*need;
+      M.nodes[farId].y=nNear.y+uy*need;
+      changed=true;
+    });
+    /* also apply the PAD-3 Z-rule: crown must be >= 0.45*(F1+F2) */
+    if(r.pad.zNeed&&r.pad.zHave<r.pad.zNeed-0.05){
+      r.pad.legs.forEach(leg=>{
+        const e=M.edges[leg.e]; if(!e)return;
+        const nA=M.nodes[e.a],nB=M.nodes[e.b]; if(!nA||!nB)return;
+        const f2a=M.nodes[e.a]&&M.nodes[e.a]._loop, f2b=M.nodes[e.b]&&M.nodes[e.b]._loop;
+        const farId=f2b?e.b:(f2a?e.a:null);
+        if(!farId)return;
+        const nFar=M.nodes[farId], nNear=M.nodes[farId===e.b?e.a:e.b];
+        const L=Math.hypot(nFar.x-nNear.x,nFar.y-nNear.y)||1;
+        const ux=(nFar.x-nNear.x)/L, uy=(nFar.y-nNear.y)/L;
+        const need=r.pad.zNeed+0.1;
+        M.nodes[farId].x=nNear.x+ux*need;
+        M.nodes[farId].y=nNear.y+uy*need;
+        changed=true;
+      });
+    }
+    edgesAt(cur).forEach(e=>queue.push(other(e,cur)));
+  }
+  if(changed){snapshot();run();}
 }
 
 /* snapping --------------------------------------------------------------*/
@@ -1737,13 +1914,24 @@ function snapPoint(wx,wy,ev){
   const g=niceStep(58)/4;
   return{x:Math.round(wx/g)*g,y:Math.round(wy/g)*g};
 }
-function snapFrom(ax,ay,wx,wy,ev){
+function snapFrom(ax,ay,wx,wy,ev,axisDir){
   if(ev&&ev.altKey)return{x:wx,y:wy};
   let dx=wx-ax,dy=wy-ay,L=Math.hypot(dx,dy);
   if(L<1e-6)return{x:wx,y:wy};
   let a=Math.atan2(dy,dx)*180/Math.PI;
   const inc=ev&&ev.shiftKey?90:15;
-  a=Math.round(a/inc)*inc;
+  /* If we have a parent pipe axis, rotate the angle space so the axis
+     direction is 0 deg, snap there, then rotate back. This makes
+     perpendicular (90 deg) and along (0/180) the natural snap points. */
+  if(axisDir){
+    const axisAng=Math.atan2(axisDir.y,axisDir.x)*180/Math.PI;
+    let rel=((a-axisAng)%360+360)%360;
+    if(rel>180)rel-=360;
+    rel=Math.round(rel/inc)*inc;
+    a=axisAng+rel;
+  } else {
+    a=Math.round(a/inc)*inc;
+  }
   const g=Math.max(0.5,niceStep(58)/10);
   L=Math.round(L/g)*g;
   const rad=a*Math.PI/180;
@@ -1754,7 +1942,7 @@ function snapFrom(ax,ay,wx,wy,ev){
 function beginDraw(nid){draw.active=true;draw.lastNode=nid;}
 function endDraw(){
   if(draw.active){draw.active=false;draw.lastNode=null;draw.preview=null;
-    hideLen();snapshot();run();}
+    draw.branchDir=null;hideLen();snapshot();run();}
   draw.snap=null;render();
 }
 function placePoint(w,ev){
@@ -1769,7 +1957,9 @@ function placePoint(w,ev){
   const s=(w.node||w.edge)?{x:w.x,y:w.y}:snapFrom(A.x,A.y,w.x,w.y,ev);
   if(!target)target=addNode(s.x,s.y,'auto');
   if(target!==draw.lastNode&&Math.hypot(M.nodes[target].x-A.x,M.nodes[target].y-A.y)>0.05){
-    addEdge(draw.lastNode,target); draw.lastNode=target; snapshot(); run();
+    addEdge(draw.lastNode,target); draw.lastNode=target;
+    draw.branchDir=null;   /* after first segment, snap back to free 15° increments */
+    snapshot(); run();
   }
 }
 
@@ -1809,8 +1999,18 @@ cv.addEventListener('mousedown',ev=>{
   if(tool==='route'){placePoint(sn,ev);render();return;}
   if(tool==='branch'){
     const he=hitEdge(sx,sy,11);
-    if(he){const nid=splitEdge(he.e,he.t);beginDraw(nid);tool='route';syncRail();snapshot();run();}
-    else toast('Click on an existing pipe to branch from it');
+    if(he){
+      const eDir=he.e;
+      const nid=splitEdge(eDir,he.t);
+      /* record parent pipe unit vector so snapping is perpendicular by default */
+      const A2=M.nodes[eDir.a]||M.nodes[Object.keys(M.nodes).slice(-2,-1)[0]];
+      const B2=M.nodes[eDir.b]||M.nodes[Object.keys(M.nodes).slice(-1)[0]];
+      if(A2&&B2){
+        const L2=Math.hypot(B2.x-A2.x,B2.y-A2.y)||1;
+        draw.branchDir={x:(B2.x-A2.x)/L2,y:(B2.y-A2.y)/L2};
+      } else draw.branchDir=null;
+      beginDraw(nid);tool='route';syncRail();snapshot();run();
+    } else toast('Click on an existing pipe to branch from it');
     return;
   }
   if(tool==='insuloop'||tool==='insz'){
@@ -1853,7 +2053,7 @@ window.addEventListener('mousemove',ev=>{
   if(draw.active&&draw.lastNode){
     const A=M.nodes[draw.lastNode];
     const sn=snapPoint(w.x,w.y,ev);
-    draw.preview=(sn.node||sn.edge)?{x:sn.x,y:sn.y}:snapFrom(A.x,A.y,sn.x,sn.y,ev);
+    draw.preview=(sn.node||sn.edge)?{x:sn.x,y:sn.y}:snapFrom(A.x,A.y,sn.x,sn.y,ev,draw.branchDir);
     render();return;
   }
   if(tool!=='select')snapPoint(w.x,w.y,ev);
@@ -1949,8 +2149,16 @@ document.addEventListener('click',ev=>{
 });
 document.addEventListener('change',ev=>{
   const el=ev.target.closest('[data-bind]'); if(!el)return;
-  let v=el.type==='checkbox'?el.checked:(el.type==='number'?parseFloat(el.value):el.value);
-  if(el.type==='number'&&isNaN(v))v=0;
+  let v;
+  if(el.type==='checkbox'){v=el.checked;}
+  else if(el.type==='number'){v=parseFloat(el.value);if(isNaN(v))v=0;}
+  else{
+    /* For selects, check if the current stored value is a number.
+       If so, coerce the new value too (e.g. dn, series).           */
+    const cur=getPath(M,el.dataset.bind);
+    const asNum=parseFloat(el.value);
+    v=(typeof cur==='number'&&!isNaN(asNum))?asNum:el.value;
+  }
   setPath(M,el.dataset.bind,v); onModelChange();
 });
 document.addEventListener('input',ev=>{
@@ -2130,7 +2338,11 @@ function nodePane(n){
   const b='nodes.'+n.id;
   const names={free:'Free end',anchor:'Fixed point',bend:'Bend',tee:'Branch / tee',
     valve:'Valve',ecomp:'E-comp',loop:'U-loop',weld:'Weld',reducer:'Reducer',orphan:'Isolated'};
-  let out=cardF('nA','Node \u2014 '+(names[role]||role),'deg '+degree(n.id),
+  const jtag=REF[n.id]||''; const fptag=REF[n.id+'_fp']||'';
+  const tagBadge=(jtag?'<span style="font-family:var(--mono);font-size:10px;color:var(--accent-text);'+
+    'background:var(--panel2);border:1px solid var(--line);padding:1px 5px;border-radius:3px;margin-left:6px">'+
+    jtag+(fptag?' / '+fptag:'')+'</span>':'');
+  let out=cardF('nA','Node \u2014 '+(names[role]||role)+tagBadge,'deg '+degree(n.id),
     rowF('Type','automatic unless overridden',selF(b+'.type',[['auto','Automatic'],
       ['free','Free end'],['anchor','Fixed point / anchor'],['ecomp','E-comp'],
       ['loop','U-loop'],['valve','Valve']]),true)+
@@ -2204,7 +2416,11 @@ function edgePane(e){
   if(!e)return '';
   const b='edges.'+e.id, r=R?R.ER[e.id]:null, p=edgeProps(e);
   const dnOpts=PIPES.map(q=>[q.dn,'DN '+q.dn+'  ('+q.d+' \u00d7 '+q.t+')']);
-  let out=cardF('eA','Pipe length','L = '+fmt(edgeLen(e),1)+' m',
+  const pstag=REF[e.id]||'';
+  const psTagBadge=pstag?'<span style="font-family:var(--mono);font-size:10px;color:var(--accent-text);'+
+    'background:var(--panel2);border:1px solid var(--line);padding:1px 5px;border-radius:3px;margin-left:6px">'+
+    pstag+'</span>':'';
+  let out=cardF('eA','Pipe section'+psTagBadge,'L = '+fmt(edgeLen(e),1)+' m',
     rowF('Nominal size','',selF(b+'.dn',dnOpts),true)+
     rowF('Insulation series','',
       '<div class="seg"><button data-set="'+b+'.series|1">1</button>'+
@@ -2238,7 +2454,9 @@ function edgePane(e){
     if(r.branchLat!==undefined)
       out+=cardF('eD','As a branch','',
         kv('Lateral movement at tee',fmt(r.branchLat,0)+' mm')+
-        kv('Free length required',fmt(r.branchLreq,1)+' m'));
+        kv('Free length required (flexibility)',fmt(r.branchLreq,1)+' m')+
+        (r.branchLall!==undefined?kv('Max straight L(all)',fmt(r.branchLall,1)+' m')+
+          kv('Limit 2\u00d7L(all)',fmt(2*r.branchLall,1)+' m'):''));
   }
   return out;
 }
@@ -2305,7 +2523,8 @@ function buildResultsPane(){
     '<th>F</th><th>LF</th><th>\u03c3</th><th>U%</th><th>\u03941</th><th>\u03942</th></tr></thead><tbody>'+
     R.sections.map(S=>{
       const dn=[...new Set(S.edges.map(e=>e.dn))].join('/');
-      return '<tr data-sec="'+S.id+'"><td>'+S.id+'</td><td>'+fmt(S.L,0)+'</td><td>'+dn+'</td>'+
+      const tags=[...new Set(S.edges.map(e=>REF[e.id]||'').filter(Boolean))].slice(0,2).join(' ');
+      return '<tr data-sec="'+S.id+'"><td>'+S.id+(tags?'<br><span style="font-family:var(--mono);font-size:9px;color:var(--dim2)">'+tags+'</span>':'')+'</td><td>'+fmt(S.L,0)+'</td><td>'+dn+'</td>'+
         '<td>'+fmt(S.f,2)+'</td><td>'+fmt(S.LF,0)+'</td>'+
         '<td class="'+cls(S.util)+'">'+fmt(S.sig,0)+'</td>'+
         '<td class="'+cls(S.util)+'">'+fmt(100*S.util,0)+'</td>'+
@@ -2329,13 +2548,17 @@ function buildResultsPane(){
 
   if(R.branchReport.length)out+=cardF('rD','Branches','',
     '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Tee</th><th>DN</th>'+
-    '<th>\u0394lat</th><th>L avail</th><th>L req</th><th>U%</th></tr></thead><tbody>'+
-    R.branchReport.map(b=>'<tr data-node="'+b.n+'"><td>'+(M.nodes[b.n].label||b.n.slice(1,5))+
-      '</td><td>'+b.dn+'</td><td>'+fmt(b.lat,0)+'</td><td>'+fmt(b.Lb,1)+'</td>'+
-      '<td class="'+(b.Lb<b.Lreq?'bad':'ok')+'">'+fmt(b.Lreq,1)+'</td>'+
-      '<td class="'+cls(b.util)+'">'+fmt(100*b.util,0)+'</td></tr>').join('')+
+    '<th>\u0394lat</th><th>L avail</th><th>L req</th><th>L(all)</th><th>U%</th></tr></thead><tbody>'+
+    R.branchReport.map(b=>{
+      const er=R.ER[b.e], Lall=er&&er.branchLall;
+      const lallCls=Lall&&b.Lb>2*Lall?'bad':(Lall&&b.Lb>1.5*Lall?'watch':'ok');
+      return '<tr data-node="'+b.n+'"><td>'+(M.nodes[b.n].label||b.n.slice(1,5))+
+        '</td><td>'+b.dn+'</td><td>'+fmt(b.lat,0)+'</td><td>'+fmt(b.Lb,1)+'</td>'+
+        '<td class="'+(b.Lb<b.Lreq?'bad':'ok')+'">'+fmt(b.Lreq,1)+'</td>'+
+        '<td class="'+lallCls+'">'+(Lall?fmt(Lall,1):'\u2013')+'</td>'+
+        '<td class="'+cls(b.util)+'">'+fmt(100*b.util,0)+'</td></tr>';}).join('')+
     '</tbody></table></div><div class="note">Lateral movement in mm \u00b7 lengths in m. '+
-    '"L req" is the free branch length needed before the first bend or fixed point.</div>');
+    '"L req" is the flexibility length. "L(all)" is the max straight length before a bend (flag if L avail > 2\u00d7L(all)).</div>');
 
   out+=cardF('rE','Export','',
     '<div class="btn2"><button class="btn" id="expSec">Sections CSV</button>'+
@@ -2474,6 +2697,8 @@ const CODEDOCS=[
  ['BR-2','watch','Branch free length is within 30% of what is needed \u2014 marginal.'],
  ['BR-3','high','Combined axial and bending stress range in the branch exceeds the fatigue allowable.'],
  ['BR-4','info','Reports the pad layers and length needed along a branch.'],
+ ['BR-5','high','Branch straight length exceeds 2\u00d7L(all) — the branch needs a bend before this point.'],
+ ['BR-6','watch','Branch straight length is approaching the 2\u00d7L(all) limit.'],
  ['STR-1','high','Axial stress in a section exceeds the adopted design level \u03c3all.'],
  ['STR-2','info','Reports the fully restrained (locked) length in the middle of a long section.'],
  ['SEC-1','watch','A section mixes more than one DN; properties are length-weighted and the reducer should be checked separately.'],
