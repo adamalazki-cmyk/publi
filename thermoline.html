@@ -1,0 +1,2926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THERMOLINE — EN 13941 route stress screening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff; --stage:#f5f5f1; --panel:#ffffff; --panel2:#f1f1ed; --panel3:#e6e6e0;
+  --line:#dcdcd5; --line2:#c2c2b8; --text:#111111; --dim:#3a3a34; --dim2:#5a5a52;
+  --accent:#c4d600; --accent-dk:#a6b800; --accent-ink:#12140a; --accent-text:#71790a; --violet:#12140a;
+  --supply:#d6d6cc; --ret:#12140a;
+  --ok:#3f8a2e; --watch:#a8790a; --high:#c1531c; --bad:#c1291f; --info:#8a9600;
+  --r:4px; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}
+::-webkit-scrollbar-thumb:hover{background:#9a9a8c}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-rows:44px 1fr 24px;height:100vh}
+.shell{display:grid;grid-template-columns:54px 1fr 348px;min-height:0}
+.stagewrap{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--stage);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+
+/* ---------- topbar ---------- */
+.topbar{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:8px;padding-right:14px;border-right:1px solid var(--line)}
+.brand b{font-size:14px;letter-spacing:.14em;font-weight:700}
+.brand span{font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.08em}
+.projname{background:transparent;border:1px solid transparent;padding:4px 7px;border-radius:var(--r);width:230px;font-weight:500}
+.projname:hover{border-color:var(--line2)} .projname:focus{border-color:var(--accent);background:var(--bg);outline:none}
+.tbgroup{display:flex;gap:3px;margin-left:auto}
+.tb{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:5px 10px;cursor:pointer;color:var(--dim);font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tb:hover{background:var(--panel3);color:var(--text);border-color:var(--line2)}
+.tb.pri{background:var(--accent);border-color:var(--accent-dk);color:var(--accent-ink);font-weight:600}
+.tb.pri:hover{background:var(--accent-dk)}
+.tb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7}
+
+/* ---------- tool rail ---------- */
+.rail{background:var(--panel);display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;overflow-y:auto}
+.tool{width:40px;height:38px;border-radius:var(--r);background:transparent;border:1px solid transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--dim);position:relative}
+.tool:hover{background:var(--panel3);color:var(--text);border-color:var(--line2)}
+.tool.on{background:var(--text);color:var(--accent);border-color:var(--text)}
+.tool svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tool i{font-family:var(--mono);font-size:8px;font-style:normal;opacity:.75}
+.railsep{width:26px;height:1px;background:var(--line);margin:5px 0}
+.tool[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:50px;top:50%;transform:translateY(-50%);background:#111111;border:none;color:#ffffff;padding:6px 10px;border-radius:var(--r);white-space:nowrap;font-size:11.5px;z-index:60;pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.28);line-height:1.45;max-width:260px;white-space:normal}
+
+/* ---------- canvas ---------- */
+#cv{flex:1;display:block;width:100%;cursor:crosshair}
+.hud{position:absolute;pointer-events:none;font-family:var(--mono);font-size:10.5px;color:var(--text)}
+.hud.tl{top:9px;left:11px;display:flex;gap:6px;flex-direction:column;align-items:flex-start}
+.hud.br{bottom:8px;right:11px;text-align:right}
+.chip{background:#1a1a16;border:1px solid #3a3a30;border-radius:var(--r);padding:3px 8px;pointer-events:auto;color:#f0f0e8}
+.zoomctl{display:flex;align-items:center;gap:2px;background:#1a1a16;border:1px solid #3a3a30;border-radius:var(--r);overflow:hidden;pointer-events:auto}
+.zoomctl button{background:transparent;border:none;color:#ffffff;padding:3px 7px;cursor:pointer;font-family:var(--mono);font-size:11px;line-height:1}
+.zoomctl button:hover{background:rgba(255,255,255,.15)}
+.zoomctl select{background:transparent;border:none;color:#ffffff;font-family:var(--mono);font-size:11px;padding:3px 4px;cursor:pointer;outline:none;-webkit-appearance:none;min-width:84px;text-align:center}
+.zoomctl select option{background:#111111;color:#ffffff}
+.zoomctl .zdiv{width:1px;background:rgba(255,255,255,.18);align-self:stretch}
+.legend{position:absolute;left:11px;bottom:8px;background:#1a1a16;border:1px solid #3a3a30;border-radius:var(--r);padding:7px 9px;font-family:var(--mono);font-size:10px;color:#d8d8cc}
+.legend .ramp{display:flex;height:7px;width:168px;border-radius:2px;overflow:hidden;margin:5px 0 3px}
+.legend .ramp i{flex:1}
+.legend .lr{display:flex;justify-content:space-between;width:168px;color:#c8c8bc}
+.legend h6{font-size:9px;letter-spacing:.1em;color:#b0b0a0;font-weight:600;text-transform:uppercase}
+.lkeys{display:grid;grid-template-columns:auto auto;gap:2px 10px;margin-top:7px;padding-top:6px;border-top:1px solid var(--line)}
+.lkeys{color:#c8c8bc}.lkeys span{display:flex;align-items:center;gap:5px}
+.lkeys b{width:8px;height:8px;border-radius:2px;display:inline-block}
+.lenbox{position:absolute;background:#ffffff;border:1.5px solid var(--accent-dk);border-radius:var(--r);padding:3px 6px;font-family:var(--mono);font-size:11.5px;width:104px;z-index:30;display:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.lenbox input{width:100%;background:transparent;border:none;outline:none;font-family:var(--mono)}
+
+/* ---------- inspector ---------- */
+.insp{background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0}
+.tab{flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;color:var(--dim2);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--text);border-bottom:2px solid var(--accent);background:var(--panel2);font-weight:700}
+.panes{flex:1;overflow-y:auto;min-height:0}
+.pane{display:none;padding:0 0 40px} .pane.on{display:block}
+
+.card{border-bottom:1px solid var(--line)}
+.card>h4{display:flex;align-items:center;gap:7px;padding:9px 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);cursor:pointer;user-select:none;font-weight:600}
+.card>h4:hover{color:var(--text);background:var(--panel2)}
+.card>h4 .cx{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--dim2);transition:transform .15s}
+.card.closed .cx{transform:rotate(-90deg)}
+.card.closed .cbody{display:none}
+.cbody{padding:2px 12px 13px}
+.cref{font-family:var(--mono);font-size:8.5px;color:var(--accent-text);opacity:.9;border:1px solid var(--accent-dk);padding:0 4px;border-radius:2px}
+
+.row{display:grid;grid-template-columns:1fr 96px;gap:7px;align-items:center;margin-bottom:6px}
+.row.w{grid-template-columns:1fr 1fr}
+.row>label{font-size:11.5px;color:var(--dim);line-height:1.25}
+.row>label small{display:block;font-family:var(--mono);font-size:9px;color:var(--dim2)}
+.fld{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;width:100%;font-family:var(--mono);font-size:11.5px;text-align:right}
+.fld:hover{border-color:var(--line2)} .fld:focus{border-color:var(--accent);outline:none}
+select.fld{text-align:left;cursor:pointer}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{flex:1;background:var(--bg);border:none;padding:5px 2px;cursor:pointer;color:var(--dim);font-size:11px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.seg button:hover{background:var(--panel3);color:var(--text)}
+.seg button.on{background:var(--text);color:var(--accent)}
+.note{font-size:10.5px;color:var(--dim2);line-height:1.45;margin-top:6px;padding:6px 8px;background:var(--panel2);border-left:2px solid var(--line2);border-radius:0 var(--r) var(--r) 0}
+.note b{color:var(--dim)}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:6px 9px;cursor:pointer;color:var(--dim);width:100%;font-size:11.5px}
+.btn:hover{background:var(--panel3);color:var(--text);border-color:var(--line2)}
+.btn.acc{background:var(--accent);border-color:var(--accent-dk);color:var(--accent-ink);font-weight:600}
+.btn.acc:hover{background:var(--accent-dk)}
+.btn.warn{color:#8f1f17;border-color:#e0b8b3;background:#fdf3f2}
+.btn.warn:hover{background:#f9e4e1;border-color:#c1291f}
+.btn2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:3.5px 0;border-bottom:1px dotted var(--line);font-size:11.5px}
+.kv:last-child{border-bottom:none}
+.kv span{color:var(--dim)} .kv b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.kv b.ok{color:var(--ok)} .kv b.watch{color:var(--watch)} .kv b.high{color:var(--high)} .kv b.bad{color:var(--bad)}
+.empty{padding:34px 20px;text-align:center;color:var(--dim2);font-size:11.5px;line-height:1.6}
+.empty svg{width:34px;height:34px;stroke:var(--line2);fill:none;stroke-width:1.2;margin-bottom:10px}
+
+/* utilisation bar */
+.ubar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin:3px 0 8px;border:1px solid var(--line)}
+.ubar i{display:block;height:100%;transition:width .2s}
+
+/* ---------- findings ---------- */
+.findbar{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.tally{display:flex;gap:5px}
+.tally b{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:3px;background:var(--bg);border:1px solid var(--line);display:flex;gap:5px;align-items:center}
+.tally b i{width:7px;height:7px;border-radius:50%;display:inline-block;font-style:normal}
+.find{border-bottom:1px solid var(--line);padding:8px 12px;cursor:pointer;border-left:3px solid transparent}
+.find:hover{background:var(--panel2)}
+.find.sel{background:var(--panel3);border-left-color:var(--accent)}
+.find .fh{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.find .sev{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.find .ft{font-size:12px;font-weight:600;flex:1;line-height:1.25}
+.find .fl{font-family:var(--mono);font-size:9px;color:var(--dim2);border:1px solid var(--line);padding:1px 4px;border-radius:2px;flex-shrink:0}
+.find .fd{font-size:11px;color:var(--dim);line-height:1.5;padding-left:14px}
+.find .fx{font-size:11px;color:var(--accent-text);font-weight:500;line-height:1.5;padding-left:14px;margin-top:4px}
+.find .fx::before{content:"→ ";opacity:.6}
+.find .fnum{font-family:var(--mono);color:var(--text)}
+
+/* ---------- tables ---------- */
+.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10.5px}
+.tbl th{text-align:right;padding:5px 6px;color:var(--dim2);font-weight:500;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--panel);font-size:9.5px;letter-spacing:.05em}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.tbl tr:hover td{background:var(--panel2)}
+.tbl tr.sel td{background:var(--panel3)}
+.tbl .ok{color:var(--ok)} .tbl .watch{color:var(--watch)} .tbl .high{color:var(--high)} .tbl .bad{color:var(--bad)}
+
+/* ---------- status ---------- */
+.status{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-family:var(--mono);font-size:10px;color:#3a3a34}
+.status b{color:#111111;font-weight:600}
+.status .sp{margin-left:auto}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px}
+
+/* ---------- modal ---------- */
+.veil{position:fixed;inset:0;background:#040709cc;display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(2px)}
+.veil.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:6px;width:min(820px,92vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 70px #000b}
+.mtabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line)}
+.mtabs button{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim2);padding:9px 4px;margin-right:18px;cursor:pointer;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.mtabs button:hover{color:var(--text)}
+.mtabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:700}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 14px;margin:8px 0 14px}
+.kgrid .kitem{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--dim);line-height:1.4}
+.kgrid .kitem svg{width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:1.6;flex-shrink:0;margin-top:1px}
+.kgrid kbd{background:var(--bg);border:1px solid var(--line2);border-radius:3px;padding:0 5px;font-family:var(--mono);font-size:10px;color:var(--text);flex-shrink:0}
+.codetbl{width:100%;font-size:11px;border-collapse:collapse;margin-bottom:6px}
+.codetbl td{padding:5px 10px 5px 0;vertical-align:top;border-bottom:1px solid var(--line)}
+.codetbl td:first-child{white-space:nowrap;font-family:var(--mono);color:var(--text);width:86px}
+.codetbl .sv{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;flex-shrink:0}
+.modal header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.modal header h3{font-size:13px;letter-spacing:.06em;font-weight:600}
+.modal header .x{margin-left:auto;background:none;border:none;color:var(--dim2);cursor:pointer;font-size:18px;line-height:1}
+.modal header .x:hover{color:var(--text)}
+.modal .mb{padding:16px;overflow-y:auto;font-size:12px;line-height:1.65;color:var(--dim)}
+.modal .mb h5{color:var(--text);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:16px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.modal .mb h5:first-child{margin-top:0}
+.modal .mb p{margin-bottom:9px}
+.modal .mb code{font-family:var(--mono);background:var(--panel2);padding:1px 5px;border-radius:3px;color:var(--accent-text);font-size:11px}
+.modal .mb ul{margin:0 0 10px 17px} .modal .mb li{margin-bottom:5px}
+.modal footer{padding:11px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+.modal footer .btn{width:auto;padding:6px 16px}
+.tplgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tpl{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;text-align:left}
+.tpl:hover{border-color:var(--accent);background:var(--panel3)}
+.tpl svg{width:100%;height:62px;stroke:var(--accent);fill:none;stroke-width:2.4;margin-bottom:7px;opacity:.85}
+.tpl b{display:block;font-size:11.5px;color:var(--text);margin-bottom:2px}
+.tpl span{font-size:10px;color:var(--dim2);line-height:1.4;display:block}
+.toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);background:var(--panel3);border:1px solid var(--line2);border-radius:var(--r);padding:8px 15px;font-size:12px;z-index:200;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(-6px)}
+.warnbanner{background:#fbf1dc;border-bottom:1px solid #e8c97a;color:#7a5a00;padding:6px 12px;font-size:11px;display:flex;gap:8px;align-items:center}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="topbar">
+  <div class="brand"><b>THERMOLINE</b><span>EN 13941</span></div>
+  <input class="projname" id="projName" value="Untitled network" spellcheck="false" aria-label="Project name">
+  <div class="tbgroup">
+    <button class="tb" id="btnNew"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New</button>
+    <button class="tb" id="btnTemplates"><svg viewBox="0 0 24 24"><path d="M3 7h7V3H3zM14 21h7v-4h-7zM3 21h7V11H3zM14 13h7V3h-7z"/></svg>Templates</button>
+    <button class="tb" id="btnOpen"><svg viewBox="0 0 24 24"><path d="M3 7v13h18V7M3 7l2-3h6l2 3h8"/></svg>Open</button>
+    <button class="tb" id="btnSave"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM7 3v6h8"/></svg>Save</button>
+    <button class="tb" id="btnGuide"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 016.5 22H20V4H6.5A2.5 2.5 0 004 6.5v13z"/></svg>Guide</button>
+    <button class="tb" id="btnMethod"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>Method &amp; limits</button>
+    <button class="tb pri" id="btnReport"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h5"/></svg>Report</button>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="rail" id="rail"></div>
+
+  <div class="stagewrap">
+    <canvas id="cv"></canvas>
+    <div class="hud tl" id="hudTL"></div>
+    <div class="hud br" id="hudBR"></div>
+    <div class="legend" id="legend"></div>
+    <div class="lenbox" id="lenbox"><input id="lenInput" autocomplete="off"></div>
+  </div>
+
+  <aside class="insp">
+    <div class="tabs">
+      <button class="tab on" data-pane="pProject">Project</button>
+      <button class="tab" data-pane="pElement">Element</button>
+      <button class="tab" data-pane="pFindings">Findings <span id="findCount"></span></button>
+      <button class="tab" data-pane="pResults">Results</button>
+    </div>
+    <div class="panes">
+      <div class="pane on" id="pProject"></div>
+      <div class="pane" id="pElement"></div>
+      <div class="pane" id="pFindings"></div>
+      <div class="pane" id="pResults"></div>
+    </div>
+  </aside>
+</div>
+
+<div class="status" id="status"></div>
+</div>
+
+<div class="veil" id="veil"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileIn" accept=".json" style="display:none">
+
+<script>
+/* =========================================================================
+   THERMOLINE — static stress screening for pre-insulated bonded DH/DC pipes
+   Calculation basis: EN 13941-1 / EN 253, cross-checked against the
+   Kingspan LOGSTOR "Design — Single Pipes" manual (04/2024) and comparable
+   isoplus guidance. See METHOD modal for the full basis and limitations.
+   ========================================================================= */
+/* ============================ 1. REFERENCE DATA ========================== */
+
+/* Steel service pipe per EN 253. As back-calculated from LOGSTOR tables
+   (As = pi*t*(d-t)); casing OD for insulation Series 1 / 2 / 3.          */
+const PIPES=[
+ {dn:20,  d:26.9,  t:2.6,  As:198,  Dc:[90,110,125]},
+ {dn:25,  d:33.7,  t:2.6,  As:254,  Dc:[90,110,125]},
+ {dn:32,  d:42.4,  t:2.6,  As:325,  Dc:[110,125,140]},
+ {dn:40,  d:48.3,  t:2.6,  As:373,  Dc:[110,125,140]},
+ {dn:50,  d:60.3,  t:2.9,  As:523,  Dc:[125,140,160]},
+ {dn:65,  d:76.1,  t:2.9,  As:667,  Dc:[140,160,180]},
+ {dn:80,  d:88.9,  t:3.2,  As:862,  Dc:[160,200,200]},
+ {dn:100, d:114.3, t:3.6,  As:1252, Dc:[200,225,250]},
+ {dn:125, d:139.7, t:3.6,  As:1539, Dc:[225,250,280]},
+ {dn:150, d:168.3, t:4.0,  As:2065, Dc:[250,280,315]},
+ {dn:200, d:219.1, t:4.5,  As:3034, Dc:[315,355,400]},
+ {dn:250, d:273.0, t:5.0,  As:4210, Dc:[400,450,500]},
+ {dn:300, d:323.9, t:5.6,  As:5600, Dc:[450,500,560]},
+ {dn:350, d:355.6, t:5.6,  As:6158, Dc:[500,560,630]},
+ {dn:400, d:406.4, t:6.3,  As:7919, Dc:[560,640,710]},
+ {dn:450, d:457.0, t:6.3,  As:8920, Dc:[630,710,800]},
+ {dn:500, d:508.0, t:6.3,  As:9930, Dc:[710,800,900]},
+ {dn:600, d:610.0, t:7.1,  As:13448,Dc:[800,900,1000]},
+ {dn:700, d:711.0, t:8.0,  As:17663,Dc:[900,1000,1100]},
+ {dn:800, d:813.0, t:8.8,  As:22233,Dc:[1000,1100,1200]},
+ {dn:900, d:914.0, t:10.0, As:28401,Dc:[1100,1200,1300]},
+ {dn:1000,d:1016.0,t:11.0, As:34718,Dc:[1200,1300,1400]}
+];
+const pipeByDn=dn=>PIPES.find(p=>p.dn===dn)||PIPES[7];
+
+/* Limit state C1 — local stability (buckling/folding) of the service pipe.
+   Max axial stress, from the EN 13941 rm/t limit curve as tabulated
+   by LOGSTOR. Pipes <= 323.9 mm: 334 MPa (dT 130 K).                     */
+const C1=[[323.9,334],[355.6,308],[406.4,279],[457,249],[508,225],[610,212],
+          [711,205],[813,198],[914,200],[1016,198],[1219,188]];
+function c1Limit(d){
+  if(d<=323.9)return 334;
+  for(let i=1;i<C1.length;i++){
+    if(d<=C1[i][0]){const a=C1[i-1],b=C1[i];return a[1]+(b[1]-a[1])*(d-a[0])/(b[0]-a[0]);}
+  }
+  return 188;
+}
+
+/* Max soil cover to top of casing (m) — keeps casing shear within EN 13941
+   limits. LOGSTOR table, by steel OD and series.                          */
+const HMAX={26.9:[2.00,1.70,1.50],33.7:[2.60,2.10,1.80],42.4:[2.60,2.30,2.00],
+ 48.3:[3.00,2.60,2.30],60.3:[3.30,2.90,2.50],76.1:[3.70,3.30,2.90],
+ 88.9:[3.60,3.20,2.90],114.3:[3.90,3.40,3.00],139.7:[4.10,3.70,3.30],
+ 168.3:[4.40,3.90,3.50],219.1:[4.60,4.10,3.60],273:[4.50,4.00,3.50],
+ 323.9:[4.70,4.20,3.70],355.6:[4.70,4.20,3.60],406.4:[4.70,4.20,3.70],
+ 457:[4.80,4.20,3.70],508:[4.70,4.10,3.60],610:[4.90,4.30,3.90]};
+
+/* Maximum permitted mitre half-angle vs axial stress level (LOGSTOR).     */
+const MITRE=[[150,4],[228,2],[252,1],[280,0.5],[1e9,0]];
+function mitreLimit(s){for(const mv of MITRE)if(s<=mv[0])return mv[1];return 0;}
+
+/* PE casing wall thickness, EN 253 (approx, for self-weight only).        */
+function tPE(Dc){const T=[[90,3],[110,3],[125,3],[140,3],[160,3],[180,3],[200,3.2],
+ [225,3.4],[250,3.6],[280,3.9],[315,4.1],[355,4.5],[400,4.8],[450,5.2],[500,5.6],
+ [560,6.0],[630,6.6],[710,7.2],[800,7.8],[900,8.6],[1000,9.4],[1100,10.2],
+ [1200,11],[1300,11.8],[1400,12.6]];for(const v of T)if(Dc<=v[0])return v[1];return 13;}
+
+/* Steel properties per EN 13941 (temperature dependent).                  */
+const STEEL=[[20,212857,1.16e-5,235],[50,211143,1.18e-5,221],[70,210000,1.19e-5,212],
+ [90,208857,1.21e-5,203],[100,208286,1.22e-5,198],[110,207714,1.23e-5,196],
+ [120,207143,1.23e-5,194],[130,206571,1.24e-5,191],[140,206000,1.25e-5,189]];
+function steelAt(T){
+  T=Math.max(20,Math.min(140,T));
+  for(let i=1;i<STEEL.length;i++){
+    if(T<=STEEL[i][0]){const a=STEEL[i-1],b=STEEL[i],f=(T-a[0])/(b[0]-a[0]);
+      return{E:a[1]+(b[1]-a[1])*f,al:a[2]+(b[2]-a[2])*f,Re:a[3]+(b[3]-a[3])*f};}
+  }
+  return{E:206000,al:1.25e-5,Re:189};
+}
+
+const SOILS={
+  'sand-dense'  :{name:'Sand, dense / well compacted', g:19,  K0:0.46, mu:0.40, phi:32.5},
+  'sand-medium' :{name:'Sand, medium dense',           g:18,  K0:0.50, mu:0.38, phi:30},
+  'gravel'      :{name:'Gravel / crushed friction fill',g:20, K0:0.43, mu:0.45, phi:35},
+  'silt'        :{name:'Silty sand',                   g:18.5,K0:0.55, mu:0.35, phi:27},
+  'clay'        :{name:'Cohesive (clay) surround',     g:19,  K0:0.60, mu:0.30, phi:24},
+  'foil'        :{name:'Sand + PE friction-reducing foil',g:19,K0:0.46,mu:0.28, phi:32.5},
+  'custom'      :{name:'Custom',                       g:19,  K0:0.46, mu:0.40, phi:32.5}
+};
+
+/* Project (design) classes — EN 13941 groups systems mainly by axial stress
+   level and rm/t. Safety factors below are TOOL DEFAULTS for screening and
+   must be confirmed against the project's adopted values.                 */
+const CLASSES={
+  A:{name:'A — low axial stress, small/medium DN', gFat:1.00, gStab:1.00,
+     hint:'dT below about 85 K, DN 300 or less. Stresses stay under yield.'},
+  B:{name:'B — high axial stress, small/medium DN', gFat:1.10, gStab:1.00,
+     hint:'Yield exceeded in the restrained zone. DN 300 or less.'},
+  C:{name:'C — large DN or high internal pressure', gFat:1.25, gStab:1.10,
+     hint:'DN above 300 or p above 1.6 MPa. Detailed analysis normally required.'}
+};
+
+/* Low-cycle fatigue design curve for the bonded steel service pipe.
+   ds_all = CFAT / N^0.25   (N * ds^4 = constant).
+   CFAT = 2811 MPa reproduces published EN 13941 allowables
+   (707 MPa at 250 cycles, 750 at 200, 823 at 136).                       */
+const CFAT=2811;
+const fatAllow=(N,g)=>CFAT/Math.pow(Math.max(1,N),0.25)/(g||1);
+
+/* Equivalent full load cycles by network duty (EN 13941 / LOGSTOR minima). */
+const DUTY={transmission:100, distribution:250, service:1000, solar:3000};
+
+/* Stress concentration factors at components — screening defaults.        */
+const SCFS={
+  plain :{run:1.80, br:2.60, name:'Plain welded branch (unreinforced)'},
+  reinf :{run:1.25, br:1.50, name:'Reinforced / saddle branch'},
+  forged:{run:1.15, br:1.35, name:'Forged or extruded tee'},
+  parallel:{run:1.30,br:1.40,name:'Parallel (swept) branch'}
+};
+const SCF_BEND=1.6, SCF_MITRE=2.2, SCF_RED=1.5;
+
+/* Foam-pad system (crosslinked PE, 40 mm layers, max 70% compression).    */
+const PAD={layer:40, maxLayers:3, comp:0.70, sigPUR:0.15};
+
+/* ============================ 2. MODEL ================================== */
+
+const uid=p=>p+Math.random().toString(36).slice(2,8);
+
+function blankModel(){
+  return{
+    meta:{name:'Untitled network',ref:'',by:'',client:'',date:new Date().toISOString().slice(0,10),notes:''},
+    ops:{medium:'heating',Tmax:110,Tmin:10,Tins:10,Tpre:60,pDesign:1.6,install:'cold'},
+    soil:{preset:'sand-dense',g:19,K0:0.46,mu:0.40,cover:0.8,gwl:99,
+          workAllow:100,trenchMax:0,pairGap:0},
+    design:{cls:'auto',duty:'distribution',cycles:250,sigMode:'manual',sigAll:190,
+            gFat:0,teeType:'plain',flexAngle:70,anchorLimit:150,exactE:false},
+    view:{show:'stress',labels:true,pads:true,moves:true,grid:true},
+    def:{dn:100,series:2},
+    nodes:{},edges:{},
+    z:{p:[],i:-1}
+  };
+}
+let M=blankModel();
+let R=null;
+let sel={kind:null,id:null};
+let hover={kind:null,id:null};
+
+function addNode(x,y,type){const id=uid('n');
+  M.nodes[id]={id,x,y,type:type||'auto',label:'',padOverride:null,teeType:''};return id;}
+function addEdge(a,b,o){const id=uid('e');M.edges[id]=Object.assign({id,a,b,
+  dn:M.def.dn,series:M.def.series,cover:null,soil:null},o||{});return id;}
+function delNode(id){for(const e of Object.values(M.edges))if(e.a===id||e.b===id)delete M.edges[e.id];
+  delete M.nodes[id];}
+function delEdge(id){const e=M.edges[id];if(!e)return;delete M.edges[id];
+  [e.a,e.b].forEach(n=>{if(!Object.values(M.edges).some(x=>x.a===n||x.b===n))delete M.nodes[n];});}
+function degree(id){let d=0;for(const e of Object.values(M.edges))if(e.a===id||e.b===id)d++;return d;}
+function edgesAt(id){return Object.values(M.edges).filter(e=>e.a===id||e.b===id);}
+function other(e,id){return e.a===id?e.b:e.a;}
+function edgeLen(e){const A=M.nodes[e.a],B=M.nodes[e.b];return Math.hypot(B.x-A.x,B.y-A.y);}
+function dirFrom(e,from){const A=M.nodes[from],B=M.nodes[other(e,from)];
+  const L=Math.hypot(B.x-A.x,B.y-A.y)||1;return{x:(B.x-A.x)/L,y:(B.y-A.y)/L};}
+
+/* undo -------------------------------------------------------------------*/
+function snapshot(){
+  const s=JSON.stringify({nodes:M.nodes,edges:M.edges,ops:M.ops,soil:M.soil,
+    design:M.design,def:M.def,meta:M.meta});
+  const z=M.z; if(z.p[z.i]===s)return;
+  z.p=z.p.slice(0,z.i+1); z.p.push(s); if(z.p.length>60)z.p.shift();
+  z.i=z.p.length-1;
+}
+function restore(s){const o=JSON.parse(s);Object.assign(M,o);sel={kind:null,id:null};run();}
+function undo(){if(M.z.i>0){M.z.i--;restore(M.z.p[M.z.i]);toast('Undo');}}
+function redo(){if(M.z.i<M.z.p.length-1){M.z.i++;restore(M.z.p[M.z.i]);toast('Redo');}}
+
+/* ============================ 3. ENGINE ================================= */
+
+/* self weight of water-filled pre-insulated pipe, kN/m */
+function selfWeight(p,series){
+  const Dc=p.Dc[series-1], tp=tPE(Dc), di=p.d-2*p.t;
+  const A=x=>Math.PI*x*x/4e6;
+  const mSteel=p.As*1e-6*7850, mWater=A(di)*1000;
+  const mPUR=(A(Dc-2*tp)-A(p.d))*80, mPE=(A(Dc)-A(Dc-2*tp))*950;
+  return (mSteel+mWater+mPUR+mPE)*9.81/1000;
+}
+
+/* soil friction per metre, kN/m
+   F = mu * ( (1+K0)/2 * sv * pi * Dc + G - gamma * pi * Dc^2/4 )
+   Reproduces LOGSTOR published F tables to within about 1%.              */
+function friction(p,series,soil,cover){
+  const Dc=p.Dc[series-1]/1000, Z=cover+Dc/2;
+  const gwl=(soil.gwl===undefined?99:soil.gwl);
+  const dry=Math.min(Z,gwl), wet=Math.max(0,Z-gwl);
+  const gEff=Math.max(soil.g-9.81,4);
+  const sv=soil.g*dry+gEff*wet;
+  const G=selfWeight(p,series);
+  const disp=(wet>0?gEff:soil.g)*Math.PI*Dc*Dc/4;
+  return Math.max(soil.mu*((1+soil.K0)/2*sv*Math.PI*Dc+G-disp),0.05);
+}
+
+function edgeProps(e){
+  const p=pipeByDn(e.dn), series=e.series||2;
+  const soil={g:M.soil.g,K0:M.soil.K0,mu:M.soil.mu,gwl:M.soil.gwl};
+  if(e.soil&&SOILS[e.soil]){const b=SOILS[e.soil];soil.g=b.g;soil.K0=b.K0;soil.mu=b.mu;}
+  const cover=e.cover||M.soil.cover;
+  return{p,series,soil,cover,Dc:p.Dc[series-1],
+         F:friction(p,series,soil,cover),As:p.As,d:p.d,t:p.t,
+         I:Math.PI*(Math.pow(p.d,4)-Math.pow(p.d-2*p.t,4))/64};
+}
+
+function thermal(){
+  const o=M.ops;
+  const Tref=o.install==='cold'?o.Tins:o.Tpre;
+  const st=steelAt((o.Tmax+o.Tmin)/2);
+  const exact=!!M.design.exactE;
+  const E=exact?st.E:210000, al=exact?st.al:1.2e-5, Ea=E*al;
+  const dTh=Math.max(0,o.Tmax-Tref), dTc=Math.max(0,Tref-o.Tmin);
+  return{Tref,Ea,E,al,Re:steelAt(o.Tmax).Re,
+    dTheat:dTh,dTcool:dTc,sigC:dTh*Ea,sigT:dTc*Ea,
+    sigMax:Math.max(dTh*Ea,dTc*Ea),dSig:Math.abs(o.Tmax-o.Tmin)*Ea,
+    dTgov:Math.max(dTh,dTc)};
+}
+
+function autoClass(){
+  if(M.design.cls!=='auto')return M.design.cls;
+  const th=thermal();
+  let maxDn=0;for(const e of Object.values(M.edges))maxDn=Math.max(maxDn,e.dn);
+  if(maxDn>300||M.ops.pDesign>1.6)return 'C';
+  return th.sigMax>214?'B':'A';
+}
+
+function allowables(){
+  const th=thermal(), D=M.design, cls=autoClass();
+  let maxD=114.3;for(const e of Object.values(M.edges))maxD=Math.max(maxD,pipeByDn(e.dn).d);
+  const gFat=D.gFat>0?D.gFat:CLASSES[cls].gFat;
+  const N=D.cycles||DUTY[D.duty]||250;
+  const c1=c1Limit(maxD)/(CLASSES[cls].gStab||1);
+  const sigAll=D.sigMode==='c1'?c1:Math.min(D.sigAll,c1);
+  return{cls,gFat,N,c1,sigAll,dsFat:fatAllow(N,gFat),th,maxD};
+}
+
+/* empirical foam-pad zone length F (m), fitted to LOGSTOR F-length curves:
+   F = 0.124 * d^0.48 * dL^0.25   (d, dL in mm)                           */
+const padZone=(d,dL)=>dL<=0?0:0.124*Math.pow(d,0.48)*Math.pow(dL,0.25);
+const padLayers=dL=>dL<=5?0:Math.ceil(dL/PAD.comp/PAD.layer);
+
+/* --- network decomposition: pair edges into runs ----------------------- */
+function angleAt(nid,e1,e2){
+  const d1=dirFrom(e1,nid), d2=dirFrom(e2,nid);
+  const dot=Math.max(-1,Math.min(1,d1.x*d2.x+d1.y*d2.y));
+  return 180-Math.acos(dot)*180/Math.PI;         /* 0 = straight through */
+}
+function buildPairs(){
+  const pair={};                                  /* nid -> {edgeId:edgeId} */
+  for(const n of Object.values(M.nodes)){
+    const es=edgesAt(n.id); pair[n.id]={};
+    if(es.length===2){pair[n.id][es[0].id]=es[1].id;pair[n.id][es[1].id]=es[0].id;}
+    else if(es.length>2){
+      let best=null;
+      for(let i=0;i<es.length;i++)for(let j=i+1;j<es.length;j++){
+        const dev=Math.abs(angleAt(n.id,es[i],es[j]));
+        const same=es[i].dn===es[j].dn?-25:0;
+        const sc=dev+same;
+        if(!best||sc<best.sc)best={sc,i,j,dev};
+      }
+      if(best&&best.dev<60){
+        pair[n.id][es[best.i].id]=es[best.j].id;
+        pair[n.id][es[best.j].id]=es[best.i].id;
+      }
+    }
+  }
+  return pair;
+}
+function buildRuns(){
+  const pair=buildPairs(), seen=new Set(), runs=[];
+  const walk=(n0,e0)=>{
+    const ns=[n0], eds=[]; let n=n0,e=e0;
+    while(e&&!seen.has(e.id)){
+      seen.add(e.id); eds.push(e); n=other(e,n); ns.push(n);
+      const nx=pair[n]&&pair[n][e.id]; e=nx?M.edges[nx]:null;
+    }
+    if(eds.length)runs.push({nodes:ns,edges:eds});
+  };
+  for(const n of Object.values(M.nodes))
+    for(const e of edgesAt(n.id))
+      if(!seen.has(e.id)&&!(pair[n.id]&&pair[n.id][e.id]))walk(n.id,e);
+  for(const e of Object.values(M.edges))
+    if(!seen.has(e.id))walk(e.a,e);
+  return{runs,pair};
+}
+
+/* node role from topology + user override */
+function nodeRole(n,pair){
+  const deg=degree(n.id);
+  if(n.type&&n.type!=='auto')return n.type;
+  if(deg===0)return 'orphan';
+  if(deg===1)return 'free';
+  if(deg>=3)return 'tee';
+  const es=edgesAt(n.id);
+  const dev=Math.abs(angleAt(n.id,es[0],es[1]));
+  if(es[0].dn!==es[1].dn)return 'reducer';
+  return dev<2?'weld':'bend';
+}
+
+/* ------------------------- MAIN ANALYSIS ------------------------------- */
+function analyse(){
+  const {runs,pair}=buildRuns();
+  const A=allowables(), th=A.th;
+  const F=[];                                        /* findings */
+  const NR={},ER={};                                 /* node/edge results */
+  const flexA=M.design.flexAngle;
+  const push=(sev,code,title,detail,fix,ref,loc)=>F.push({sev,code,title,detail,fix,ref,loc});
+
+  for(const e of Object.values(M.edges))
+    ER[e.id]={sigA:0,sigB:0,sigMax:0,util:0,LF:0,pr:edgeProps(e),len:edgeLen(e),sec:null};
+  for(const n of Object.values(M.nodes))
+    NR[n.id]={role:nodeRole(n,pair),move:{x:0,y:0},dR:0,parts:[],pad:null,anchorF:0,
+              sig:0,ds:0,ep:false,fixed:false};
+
+  const sections=[];
+  runs.forEach((run,ri)=>{
+    run.runIndex=ri;
+    /* classify every node on the run */
+    const marks=run.nodes.map((nid,i)=>{
+      const n=M.nodes[nid], role=NR[nid].role;
+      const closed=run.nodes[0]===run.nodes[run.nodes.length-1];
+      const term=(i===0||i===run.nodes.length-1)&&!closed;
+      let kind='pass';
+      if(role==='anchor')kind='fixed';
+      else if(role==='ecomp'||role==='loop')kind='free';
+      else if(term){
+        if(degree(nid)>=3)kind='fixed';             /* branch root at a tee */
+        else kind=(role==='free')?'free':'fixed';
+      } else if(role==='bend'||role==='reducer'){
+        const es=edgesAt(nid);
+        const dev=Math.abs(angleAt(nid,es[0],es[1]));
+        NR[nid].dev=dev;
+        kind=dev>=flexA?'free':'pass';
+      }
+      if(kind!=='pass'){NR[nid].ep=true;NR[nid].fixed=(kind==='fixed');}
+      return kind;
+    });
+    /* split into sections between marks */
+    let start=0;
+    for(let i=1;i<run.nodes.length;i++){
+      if(marks[i]!=='pass'||i===run.nodes.length-1){
+        const idx0=start,idx1=i;
+        const segs=run.edges.slice(idx0,idx1);
+        if(segs.length){
+          sections.push({id:'S'+(sections.length+1),run:ri,
+            n0:run.nodes[idx0],n1:run.nodes[idx1],
+            e0:marks[idx0]==='fixed'?'fixed':'free',
+            e1:marks[idx1]==='fixed'?'fixed':'free',
+            edges:segs, i0:idx0, i1:idx1});
+        }
+        start=i;
+      }
+    }
+  });
+
+  /* ---- per-section mechanics ---- */
+  sections.forEach(S=>{
+    let L=0,sumF=0,sumAs=0,minAs=1e9,maxD=0,dnSet=new Set();
+    S.edges.forEach(e=>{const p=ER[e.id].pr,l=ER[e.id].len;
+      L+=l;sumF+=p.F*l;sumAs+=p.As*l;minAs=Math.min(minAs,p.As);
+      maxD=Math.max(maxD,p.d);dnSet.add(e.dn);});
+    const f=(sumF/L)*1000;                          /* N/m */
+    const As=sumAs/L;                               /* mm2 */
+    const sigMax=th.sigMax;
+    const LF=sigMax*As/f;                           /* m */
+    S.L=L; S.f=f/1000; S.As=As; S.LF=LF; S.maxD=maxD; S.mixed=dnSet.size>1;
+    S.sigFull=sigMax; S.Lall=A.sigAll*As/f;
+    const both = S.e0==='free'&&S.e1==='free';
+    const none = S.e0==='fixed'&&S.e1==='fixed';
+
+    if(none){ S.sig=sigMax; S.lock=L; S.Lx0=0; S.Lx1=0; }
+    else if(both){
+      if(L>=2*LF){S.sig=sigMax;S.lock=L-2*LF;S.Lx0=LF;S.Lx1=LF;}
+      else{S.sig=0.5*L*f/As;S.lock=0;S.Lx0=L/2;S.Lx1=L/2;}
+    } else {
+      const freeIs0=S.e0==='free';
+      const Lx=Math.min(L,LF);
+      S.sig=Math.min(sigMax,L*f/As);
+      if(L>=LF)S.sig=sigMax;
+      S.lock=Math.max(0,L-LF);
+      S.Lx0=freeIs0?Lx:0; S.Lx1=freeIs0?0:Lx;
+      S.anchorSide=As*sigMax-Math.min(f*L,As*sigMax);
+    }
+    if(none)S.anchorSide=As*sigMax;
+    S.util=S.sig/A.sigAll;
+
+    /* stress at distance x from n0 */
+    S.sigAt=x=>{
+      const a=S.e0==='fixed'?sigMax:Math.min(sigMax,x*f/As);
+      const b=S.e1==='fixed'?sigMax:Math.min(sigMax,(L-x)*f/As);
+      return Math.min(sigMax,Math.min(a,b));
+    };
+    /* map onto edges */
+    let x=0;
+    S.edges.forEach(e=>{
+      const r=ER[e.id], l=r.len;
+      r.sec=S.id; r.x0=x; r.x1=x+l;
+      r.sigA=S.sigAt(x); r.sigB=S.sigAt(x+l);
+      r.sigMax=Math.max(r.sigA,r.sigB,S.sigAt((x+l/2)));
+      r.util=r.sigMax/A.sigAll; r.LF=LF; r.Lall=S.Lall;
+      x+=l;
+    });
+
+    /* movements at the two ends */
+    const mv=(Lx)=>{
+      if(Lx<=0)return 0;
+      const Lm=Lx*1000;
+      return Math.max(0, th.al*th.dTgov*Lm - S.f*1000*Lm*Lm/(2*As*th.E)/1000 );
+    };
+    S.d0=mv(S.Lx0); S.d1=mv(S.Lx1);
+  });
+
+  /* movement contributions to nodes */
+  sections.forEach(S=>{
+    const first=S.edges[0], last=S.edges[S.edges.length-1];
+    if(S.d0>0){
+      const u=dirFrom(first,other(first,S.n0));      /* points toward n0 */
+      NR[S.n0].move.x+=u.x*S.d0; NR[S.n0].move.y+=u.y*S.d0;
+      NR[S.n0].parts.push({sec:S.id,d:S.d0,ux:u.x,uy:u.y});
+    }
+    if(S.d1>0){
+      const u=dirFrom(last,other(last,S.n1));
+      NR[S.n1].move.x+=u.x*S.d1; NR[S.n1].move.y+=u.y*S.d1;
+      NR[S.n1].parts.push({sec:S.id,d:S.d1,ux:u.x,uy:u.y});
+    }
+    NR[S.n0].sig=Math.max(NR[S.n0].sig,S.sigAt(0));
+    NR[S.n1].sig=Math.max(NR[S.n1].sig,S.sigAt(S.L));
+    if(S.anchorSide){
+      if(S.e0==='fixed')NR[S.n0].sides=(NR[S.n0].sides||[]).concat(S.anchorSide);
+      if(S.e1==='fixed')NR[S.n1].sides=(NR[S.n1].sides||[]).concat(S.anchorSide);
+    }
+  });
+  for(const nid in NR){
+    const r=NR[nid];
+    r.dR=Math.hypot(r.move.x,r.move.y);
+    if(r.sides&&r.sides.length){
+      r.anchorF=(r.sides.length>1)?Math.abs(r.sides[0]-r.sides[1]):r.sides[0];
+      r.anchorF/=1000;                               /* kN */
+    }
+  }
+
+  /* helper: distance of a node from S.n0 along the section */
+  const posIn=(S,nid)=>{let x=0,cur=S.n0;
+    for(const e of S.edges){if(cur===nid)return x;x+=ER[e.id].len;cur=other(e,cur);}
+    return cur===nid?x:null;};
+  const secOf=nid=>sections.find(S=>posIn(S,nid)!==null);
+  const secsAt=nid=>sections.filter(S=>S.n0===nid||S.n1===nid);
+
+  /* main-pipe movement at an interior point (LOGSTOR branch formula) */
+  function moveAt(S,x){
+    if(S.e0==='fixed'&&S.e1==='fixed')return{d:0,dir:0};
+    let Lp,s,dir;
+    if(S.e0==='free'&&S.e1==='free'){
+      const va=S.L/2;
+      if(x<va){Lp=Math.min(va,S.LF); s=Lp-x; dir=-1;}
+      else{Lp=Math.min(va,S.LF); s=Lp-(S.L-x); dir=+1;}
+    } else if(S.e0==='free'){Lp=Math.min(S.L,S.LF); s=Lp-x; dir=-1;}
+    else{Lp=Math.min(S.L,S.LF); s=Lp-(S.L-x); dir=+1;}
+    if(s<=0)return{d:0,dir};
+    const sm=s*1000, Lm=Lp*1000;
+    const d=th.al*th.dTgov*sm - S.f*(2*Lm-sm)*sm/(2*th.E*S.As);
+    return{d:Math.max(0,d),dir};
+  }
+
+  /* how far a pad zone can run from a node before it meets the next
+     feature (bend, tee, anchor, reducer, terminal). Pads cannot be laid
+     through a mitred weld or past a fitting.                             */
+  function legReach(nid,e0){
+    let len=0,cur=nid,ed=e0,last=e0,guard=0;
+    while(ed&&guard++<400){
+      len+=ER[ed.id].len; last=ed;
+      const nx=other(ed,cur), rr=NR[nx];
+      if(!rr||degree(nx)!==2||rr.ep||rr.role!=='weld')
+        return{len,end:nx,role:rr?rr.role:'end',lastEdge:ed};
+      const es=edgesAt(nx); ed=(es[0].id===ed.id)?es[1]:es[0]; cur=nx;
+    }
+    return{len,end:cur,role:'end',lastEdge:last};
+  }
+  const otherEdge=(nid,exId)=>{const es=edgesAt(nid);
+    return es.length===2?(es[0].id===exId?es[1]:es[0]):null;};
+
+  /* ======================= NODE-LEVEL CHECKS ========================== */
+  const teeReport=[], bendReport=[], branchReport=[];
+  function R_bendSync(){
+    bendReport.forEach(br=>{
+      const r2=NR[br.n]; if(!r2||!r2.pad)return;
+      const pd=r2.pad.legs.filter(l=>l.F>0.05);
+      br.F=r2.pad.F; br.layers=r2.pad.layers; br.dR=r2.pad.dR;
+      br.trench=r2.pad.trench; br.approx=!!r2.pad.approx;
+      br.avail=pd.length?Math.min(...pd.map(l=>l.avail)):0;
+      br.fit=pd.every(l=>l.F<=l.avail+0.05);
+    });
+  }
+
+  for(const n of Object.values(M.nodes)){
+    const r=NR[n.id], role=r.role, es=edgesAt(n.id);
+    if(!es.length)continue;
+    const pr=edgeProps(es[0]);
+    const dsLocal=th.sigMax>0?(r.sig/th.sigMax)*th.dSig:0;
+    r.ds=dsLocal;
+
+    /* --- flexible bends / expansion points ---------------------------- */
+    if((role==='bend'||role==='loop'||role==='ecomp')&&r.ep){
+      const layers=padLayers(r.dR);
+      /* A leg is padded to take the movement arriving ACROSS it, i.e. the
+         component of the bend's displacement perpendicular to that leg.
+         For a 90 deg L-bend that is the other leg's axial expansion.     */
+      const legs=es.map(e=>{
+        const u=dirFrom(e,n.id);
+        const along=r.move.x*u.x+r.move.y*u.y;
+        const lat=Math.hypot(r.move.x-along*u.x,r.move.y-along*u.y);
+        const pe=edgeProps(e), rc=legReach(n.id,e);
+        return{e:e.id,dn:e.dn,Dc:pe.Dc,d:lat,F:padZone(pe.d,lat),
+               avail:rc.len,end:rc.end,endRole:rc.role,lastEdge:rc.lastEdge.id};
+      });
+      const Fmax=Math.max(0,...legs.map(l=>l.F));
+      const maxDc=Math.max(...legs.map(l=>l.Dc));
+      const tPad=layers*PAD.layer;
+      const trench=(maxDc+2*tPad+2*(M.soil.workAllow||0))/1000;
+      r.pad={dR:r.dR,layers,t:tPad,F:Fmax,legs,trench,maxDc,
+             lengths:[Fmax,Fmax/2,Fmax/4].slice(0,Math.max(1,Math.min(3,layers)))};
+      const padded=legs.filter(l=>l.F>0.05);
+      bendReport.push({n:n.id,dev:r.dev||90,dR:r.dR,layers,F:Fmax,sig:r.sig,
+        avail:padded.length?Math.min(...padded.map(l=>l.avail)):0,trench,
+        fit:padded.every(l=>l.F<=l.avail+0.05)});
+
+      if(SCF_BEND*dsLocal>A.dsFat)
+        push('high','FAT-2','Bend fatigue utilisation exceeded',
+          'Stress range at the bend '+(SCF_BEND*dsLocal).toFixed(0)+' MPa (SCF '+SCF_BEND+
+          ') against allowable '+A.dsFat.toFixed(0)+' MPa for '+A.N+' equivalent full cycles.',
+          'Reduce the operating temperature range, lower the axial stress level, or use a large-radius curved pipe instead of a welded elbow.',
+          'EN 13941 fatigue',{k:'node',id:n.id});
+    }
+
+    /* --- shallow direction changes ------------------------------------ */
+    if(role==='bend'&&!r.ep){
+      const dev=r.dev||0;
+      if(dev>0.4){
+        const lim=mitreLimit(r.sig), Rmin=500*pr.d/1000;
+        const sev=dev/2>lim?'watch':'info';
+        push(sev,'DIR-1','Shallow direction change of '+dev.toFixed(1)+'\u00b0',
+          'At '+r.sig.toFixed(0)+' MPa axial stress the permitted mitre half-angle is '+lim+
+          '\u00b0 (here '+(dev/2).toFixed(1)+'\u00b0). This node does not relieve axial stress: only bends of about 80-90\u00b0 expand freely.',
+          dev/2>lim?('Form the change as an elastic curve (min radius '+Rmin.toFixed(0)+
+            ' m for DN'+es[0].dn+') or a prefabricated curved pipe, not a mitred weld.')
+           :('A mitred weld is acceptable at this stress level; keep successive mitres at least '+
+            (20*pr.d/1000).toFixed(1)+' m apart.'),
+          'Mitre / elastic curve limits',{k:'node',id:n.id});
+      }
+    }
+
+    /* --- anchors ------------------------------------------------------ */
+    if(role==='anchor'){
+      const kN=r.anchorF||0;
+      r.anchor={F:kN};
+      push(kN>0?'info':'info','ANC-1','Anchor force '+kN.toFixed(0)+' kN',
+        'Unbalanced axial force to be taken by the fixed point. Pipe axial stress at the anchor '+
+        r.sig.toFixed(0)+' MPa.',
+        'Size the concrete block for '+kN.toFixed(0)+
+        ' kN against the allowable soil bearing pressure, and confirm the casing/foam shear transfer length.',
+        'EN 13941 fixed points',{k:'node',id:n.id});
+      if(r.sig>M.design.anchorLimit)
+        push('watch','ANC-2','Axial stress at anchor above the adopted limit',
+          r.sig.toFixed(0)+' MPa exceeds the '+M.design.anchorLimit+
+          ' MPa stress-difference limit normally applied where a cast anchor is installed.',
+          'Reduce stress locally with an expansion bend, E-comp or heat pre-stressing before the anchor, or delete the anchor and let friction control the movement.',
+          'Manufacturer anchor rule',{k:'node',id:n.id});
+    }
+
+    /* --- free ends ---------------------------------------------------- */
+    if(role==='free'&&r.ep&&r.dR>0){
+      if(r.dR>150)
+        push('watch','END-1','Large movement at free end',
+          'First-time movement '+r.dR.toFixed(0)+' mm at the terminal point.',
+          'Check the chamber, above-ground connection or compensator can take this. A single E-comp absorbs up to about 150 mm.',
+          'EN 13941',{k:'node',id:n.id});
+    }
+
+    /* --- tees and branches -------------------------------------------- */
+    if(role==='tee'){
+      const scf=SCFS[n.teeType||M.design.teeType]||SCFS.plain;
+      const S=secOf(n.id);
+      const x=S?posIn(S,n.id):null;
+      const mv=(S&&x!==null)?moveAt(S,x):{d:0,dir:0};
+      /* run direction at the tee */
+      let runDir={x:1,y:0}, runEdges=[];
+      if(S){
+        let cur=S.n0;
+        for(const e of S.edges){const nxt=other(e,cur);
+          if(cur===n.id||nxt===n.id)runEdges.push(e); cur=nxt;}
+        if(runEdges.length){const e=runEdges[0];const u=dirFrom(e,e.a);runDir=u;}
+      }
+      const dTee=mv.d, sgn=mv.dir||1;
+      const mvVec={x:runDir.x*dTee*sgn,y:runDir.y*dTee*sgn};
+      r.teeMove=dTee; r.teeVec=mvVec; r.teeScf=scf;
+      const runIds=new Set(runEdges.map(e=>e.id));
+      const brs=es.filter(e=>!runIds.has(e.id));
+
+      const dsRun=scf.run*dsLocal;
+      const teeRow={n:n.id,move:dTee,sig:r.sig,dsRun,util:dsRun/A.dsFat,br:[],scf:scf.name};
+      if(dsRun>A.dsFat)
+        push('high','TEE-1','Tee run stress exceeds fatigue allowable — reinforcement required',
+          'Stress range in the run pipe at the branch intersection '+dsRun.toFixed(0)+
+          ' MPa (SCF '+scf.run+', '+scf.name.toLowerCase()+') against '+A.dsFat.toFixed(0)+
+          ' MPa allowable for '+A.N+' cycles.',
+          'Use a reinforced or forged tee, add a reinforcing saddle / full-encirclement pad, or reduce the axial stress level at this location with an expansion element.',
+          'EN 13941 branch connections',{k:'node',id:n.id});
+      else if(dsRun>0.85*A.dsFat)
+        push('watch','TEE-2','Tee run stress close to the fatigue allowable',
+          dsRun.toFixed(0)+' MPa against '+A.dsFat.toFixed(0)+' MPa ('+
+          (100*dsRun/A.dsFat).toFixed(0)+'% utilisation).',
+          'Consider upgrading the branch detail or confirming with a detailed model.',
+          'EN 13941 branch connections',{k:'node',id:n.id});
+
+      brs.forEach(be=>{
+        const bp=edgeProps(be);
+        const ub=dirFrom(be,n.id);
+        const along=mvVec.x*ub.x+mvVec.y*ub.y;
+        const lat=Math.hypot(mvVec.x-along*ub.x,mvVec.y-along*ub.y);
+        const bS=sections.find(S2=>S2.edges.includes(be)&&(S2.n0===n.id||S2.n1===n.id));
+        const Lb=bS?bS.L:edgeLen(be);
+        const sigB=bS?bS.sig:0;
+        const dsB=th.sigMax>0?(sigB/th.sigMax)*th.dSig:0;
+        const Lreq=lat>0.5?Math.sqrt(3*th.E*bp.d*lat*scf.br/A.dsFat)/1000:0;
+        const sigBend=Lb>0?3*th.E*bp.d*lat/Math.pow(Lb*1000,2):0;
+        const dsBr=scf.br*(dsB+sigBend);
+        const padL=Math.max(Lreq,padZone(bp.d,lat));
+        const row={e:be.id,dn:be.dn,lat,along,Lb,Lreq,sigBend,dsBr,util:dsBr/A.dsFat,padL,
+          layers:padLayers(lat)};
+        teeRow.br.push(row); branchReport.push(Object.assign({n:n.id},row));
+        ER[be.id].branchLat=lat; ER[be.id].branchLreq=Lreq;
+
+        if(Lreq>0&&Lb<Lreq)
+          push('critical','BR-1','Branch too rigid for the main-pipe movement',
+            'DN'+be.dn+' branch has only '+Lb.toFixed(1)+
+            ' m of free length before its next fixed point or bend, against '+Lreq.toFixed(1)+
+            ' m required to absorb '+lat.toFixed(0)+
+            ' mm of lateral movement of the main. Bending stress range would be '+
+            sigBend.toFixed(0)+' MPa.',
+            'Introduce a bend (L-leg) in the branch at least '+Lreq.toFixed(1)+
+            ' m from the tee, run the branch parallel to the main before turning off, or use a swept / parallel branch detail. Pads over '+
+            padL.toFixed(1)+' m each side of the branch.',
+            'Guided-cantilever flexibility',{k:'edge',id:be.id});
+        else if(Lreq>0&&Lb<1.3*Lreq)
+          push('watch','BR-2','Branch flexibility is marginal',
+            'Free length '+Lb.toFixed(1)+' m against '+Lreq.toFixed(1)+' m required ('+
+            (100*Lreq/Lb).toFixed(0)+'% utilised).',
+            'Add foam pads over '+padL.toFixed(1)+
+            ' m along both sides of the branch, or move the first branch bend further from the tee.',
+            'Guided-cantilever flexibility',{k:'edge',id:be.id});
+        if(dsBr>A.dsFat)
+          push('high','BR-3','Branch intersection stress exceeds fatigue allowable',
+            'Combined axial + bending stress range in the branch '+dsBr.toFixed(0)+
+            ' MPa (SCF '+scf.br+') against '+A.dsFat.toFixed(0)+' MPa.',
+            'Reinforce the branch connection and increase the branch flexible length.',
+            'EN 13941 branch connections',{k:'edge',id:be.id});
+        if(lat>5&&padLayers(lat)>0)
+          push('info','BR-4','Foam pads required along branch',
+            lat.toFixed(0)+' mm lateral movement imposed on the DN'+be.dn+' branch.',
+            'Provide '+padLayers(lat)+' x 40 mm pad layer(s) over '+padL.toFixed(1)+
+            ' m from the tee, both sides of the branch.','LOGSTOR branch detail',{k:'edge',id:be.id});
+      });
+      teeReport.push(teeRow);
+      if(dTee>3)
+        push('info','TEE-3','Main pipe moves '+dTee.toFixed(0)+' mm at this branch',
+          'Axial movement of the run pipe is imposed on the branch as lateral displacement.',
+          'Confirm the branch detail and pad arrangement suit this movement.',
+          'LOGSTOR expansion at branches',{k:'node',id:n.id});
+    }
+  }
+
+
+  /* ===== MULTI-BEND ELEMENTS: carry the delivered movement through =====
+     The section model gives each short leg only its own thermal movement,
+     so the inner corners of a U-loop or offset would read as motionless.
+     Group expansion bends joined by legs that are short against their own
+     friction length, and size every pad in the group on the largest
+     movement delivered to it. Approximate, and flagged as such.        */
+  {
+    const seenG=new Set(), groups=[];
+    const isBend=x=>x&&x.ep&&!x.fixed&&/bend|loop|ecomp/.test(x.role);
+    for(const nid in NR){
+      if(seenG.has(nid)||!isBend(NR[nid]))continue;
+      const grp=[],stack=[nid];
+      while(stack.length){
+        const c2=stack.pop(); if(seenG.has(c2))continue;
+        seenG.add(c2); grp.push(c2);
+        sections.forEach(S=>{
+          if(S.n0!==c2&&S.n1!==c2)return;
+          const o=(S.n0===c2)?S.n1:S.n0;
+          if(!isBend(NR[o])||seenG.has(o))return;
+          if(S.L<0.5*S.LF)stack.push(o);
+        });
+      }
+      if(grp.length>1)groups.push(grp);
+    }
+    groups.forEach(g=>{
+      const dMax=Math.max(...g.map(x=>NR[x].dR||0));
+      if(dMax<=5)return;
+      let touched=0;
+      g.forEach(x=>{
+        const r2=NR[x]; if(!r2.pad)return;
+        let ch=false;
+        r2.pad.legs.forEach(L=>{
+          if(L.d<dMax-0.5){L.d=dMax;
+            L.F=padZone(pipeByDn(M.edges[L.e].dn).d,dMax);ch=true;}
+        });
+        if(!ch)return;
+        touched++;
+        r2.pad.F=Math.max(...r2.pad.legs.map(l=>l.F));
+        r2.pad.dR=Math.max(r2.pad.dR,dMax);
+        r2.pad.layers=Math.max(r2.pad.layers,padLayers(dMax));
+        r2.pad.t=r2.pad.layers*PAD.layer;
+        r2.pad.trench=(r2.pad.maxDc+2*r2.pad.t+2*(M.soil.workAllow||0))/1000;
+        r2.pad.lengths=[r2.pad.F,r2.pad.F/2,r2.pad.F/4]
+          .slice(0,Math.max(1,Math.min(3,r2.pad.layers)));
+        r2.pad.approx=true;
+      });
+      if(touched)
+        push('watch','LOOP-1','Multi-bend expansion element modelled approximately',
+          'The '+g.length+' bends here are joined by legs that are short against their own '+
+          'friction length, so they act as one expansion element rather than independent bends. '+
+          'Every pad in the group has been sized on the '+dMax.toFixed(0)+
+          ' mm delivered to it, because the section model does not carry displacement through '+
+          'a chain of bends.',
+          'Treat the pad quantities here as indicative and confirm the element against the '+
+          'supplier loop or offset tables, or model it explicitly.',
+          'Tool limitation',{k:'node',id:g[0]});
+    });
+    /* refresh the reported fit now that pad zones may have grown */
+    R_bendSync();
+  }
+
+  /* ===== PAD SIZING FINDINGS (after propagation) ===================== */
+  for(const n of Object.values(M.nodes)){
+    const r=NR[n.id]; if(!r||!r.pad)continue;
+    const layers=r.pad.layers, legs=r.pad.legs, Fmax=r.pad.F, trench=r.pad.trench;
+
+      /* --- PAD-1: does the pad zone physically fit? --------------------- */
+    if(layers>0)legs.forEach(L=>{
+      if(L.F<=0.05)return;
+      if(L.F>L.avail+0.05){
+        const meets={bend:'another bend',tee:'a branch',anchor:'a fixed point',
+          reducer:'a reducer',valve:'a valve',ecomp:'an E-comp',loop:'a U-loop',
+          free:'the pipe end',end:'the pipe end'}[L.endRole]||'the next feature';
+        push('high','PAD-1','Pad zone does not fit on this leg',
+          'The '+L.F.toFixed(1)+' m pad zone on the DN'+L.dn+
+          ' leg runs past '+meets+' at '+L.avail.toFixed(1)+
+          ' m. Only '+L.avail.toFixed(1)+' m of clear straight pipe is available.',
+          'Lengthen the leg to at least '+L.F.toFixed(1)+
+          ' m, reduce the movement at this bend (shorter section, pre-stress, or a U-loop), or ask the supplier for a shortened pad arrangement. Pads must not be laid through a mitred weld or a fitting.',
+          'LOGSTOR F-length / pad layout',{k:'node',id:n.id});
+      } else if(L.F>0.85*L.avail){
+        push('watch','PAD-2','Pad zone nearly fills the available leg',
+          L.F.toFixed(1)+' m of pads on a '+L.avail.toFixed(1)+' m clear length ('+
+          (100*L.F/L.avail).toFixed(0)+'%).',
+          'Check the layout on the trench drawing before it is issued; there is little room for the leg to be shortened on site.',
+          'LOGSTOR F-length',{k:'node',id:n.id});
+      }
+    });
+
+    /* --- PAD-4: excavation width and adjacent pipe clearance ---------- */
+    if(layers>0){
+      if(M.soil.trenchMax>0&&trench>M.soil.trenchMax+0.005)
+        push('watch','PAD-4','Excavation width exceeded at this bend',
+          'Casing \u00f8'+r.pad.maxDc+' mm plus '+r.pad.t+' mm of pad each side plus '+
+          (M.soil.workAllow||0)+' mm working space needs a '+trench.toFixed(2)+
+          ' m trench, against the '+M.soil.trenchMax.toFixed(2)+' m stated maximum.',
+          'Widen the excavation locally, reduce the pad thickness by shortening the expansion section, or move the bend to where the trench can be opened out.',
+          'EN 13941-2 trench',{k:'node',id:n.id});
+      if(M.soil.pairGap>0&&r.pad.t>M.soil.pairGap)
+        push('watch','PAD-5','Pads will not fit the gap to the adjacent pipe',
+          r.pad.t+' mm of pad against a stated clear gap of '+M.soil.pairGap+
+          ' mm between adjacent casings.',
+          'Increase the casing spacing locally at the bend, or fit pads on the outer face only and confirm the one-sided arrangement with the supplier.',
+          'EN 13941-2 casing spacing',{k:'node',id:n.id});
+    }
+    if(layers>PAD.maxLayers)
+      push('high','EXP-1','Expansion at bend exceeds foam-pad capacity',
+        'Resultant movement '+r.dR.toFixed(0)+' mm needs '+layers+
+        ' x 40 mm pad layers. Manufacturer guidance caps normal design at 3 layers (120 mm, i.e. 84 mm movement) so casing surface temperature stays within EN 13941 limits.',
+        'Reduce the section length between expansion points, pre-stress (heat or E-comp), or replace the L-bend with a U-loop. Otherwise refer the detail to the pipe supplier.',
+        'EN 13941 / pad system',{k:'node',id:n.id});
+    else if(layers>0&&r.dR>5)
+      push('info','EXP-0','Foam pads required at bend',
+        'Resultant movement '+r.dR.toFixed(0)+' mm. Provide '+layers+' x 40 mm pad layer(s) over F = '+
+        Fmax.toFixed(1)+' m on the outside of the bend, layers stepped F / F-2 / F-4.',
+        'Show pad lengths on the trench drawing. Each leg is padded over its own F, set by the movement arriving across that leg.',
+        'LOGSTOR F-length',{k:'node',id:n.id});
+  }
+
+  /* ============ Z-BEND AND LOOP LEG DIMENSION (0.45 rule) ============= */
+  for(const nid in NR){
+    const r=NR[nid]; if(!r.pad||!r.pad.layers)continue;
+    r.pad.legs.forEach(L=>{
+      const rr=NR[L.end];
+      if(!rr||!rr.pad||!rr.pad.layers)return;
+      if(nid>=L.end)return;                       /* once per pair */
+      const far=rr.pad.legs.find(x=>x.end===nid);
+      const F2=far?far.F:rr.pad.F;
+      const need=0.45*(L.F+F2);
+      if(need<=0.05)return;
+      /* Z offset (outer legs run opposite ways) or U-loop crown (same way) */
+      const oa=otherEdge(nid,L.e), ob=otherEdge(L.end,L.lastEdge);
+      let isZ=true;
+      if(oa&&ob){const ua=dirFrom(oa,nid), ub=dirFrom(ob,L.end);
+        isZ=(ua.x*ub.x+ua.y*ub.y)<0;}
+      r.pad.zNeed=need; r.pad.zHave=L.avail;
+      if(L.avail<need-0.05)
+        push('high','PAD-3',(isZ?'Z-offset':'Loop leg')+' is shorter than the pads need',
+          'The leg between the two expansion bends is '+L.avail.toFixed(1)+
+          ' m. With '+L.F.toFixed(1)+' m and '+F2.toFixed(1)+
+          ' m pad zones either end, the manufacturer rule Z \u2265 0.45(F\u2081+F\u2082) asks for '+
+          need.toFixed(1)+' m.'+(isZ?'':
+          ' The 0.45 rule is written for Z offsets; for a loop crown treat this as indicative and check the supplier loop tables.'),
+          'Lengthen the offset to at least '+need.toFixed(1)+
+          ' m, or cut the movement at the bends so the pad zones shorten.',
+          'LOGSTOR Z-bend rule',{k:'node',id:nid});
+    });
+  }
+
+  /* ====================== SECTION-LEVEL CHECKS ======================== */
+  sections.forEach(S=>{
+    const loc={k:'section',id:S.id};
+    const dsSec=th.sigMax>0?(S.sig/th.sigMax)*th.dSig:0;
+    S.ds=dsSec;
+    if(S.sig>A.c1+0.5)
+      push('critical','C1-1','Local stability limit exceeded',
+        'Axial stress '+S.sig.toFixed(0)+' MPa exceeds the EN 13941 limit-state C1 value of '+
+        A.c1.toFixed(0)+' MPa for a '+S.maxD.toFixed(1)+
+        ' mm service pipe. Risk of local buckling / folding of the pipe wall.',
+        'Reduce the temperature difference, pre-stress the section, or insert expansion elements so the axial stress falls below '+
+        A.c1.toFixed(0)+' MPa. Larger diameters may need a heavier wall.',
+        'EN 13941 limit state C1',loc);
+    else if(S.sig>A.sigAll+0.5){
+      const nSec=Math.ceil(S.L/(2*S.Lall));
+      push('high','STR-1','Axial stress above the adopted design level',
+        'Section '+S.id+' reaches '+S.sig.toFixed(0)+' MPa against the adopted '+
+        A.sigAll.toFixed(0)+' MPa. Section length '+S.L.toFixed(0)+
+        ' m, friction length LF '+S.LF.toFixed(0)+' m, L(all) '+S.Lall.toFixed(0)+' m.',
+        'Divide the section with '+(nSec-1)+' expansion element(s) (L, Z or U) at not more than '+
+        (2*S.Lall).toFixed(0)+' m spacing, or pre-stress it. Alternatively accept the higher level if global stability is demonstrated (C1 limit is '+
+        A.c1.toFixed(0)+' MPa).',
+        'EN 13941 / installation length',loc);
+    }
+    if(S.e0==='free'&&S.e1==='free'&&S.L>2*S.Lall&&S.sig<=A.sigAll+0.5){}
+    if(S.lock>0&&S.sig<=A.sigAll+0.5)
+      push('info','STR-2','Fully restrained length '+S.lock.toFixed(0)+' m',
+        'Section '+S.id+' is '+S.L.toFixed(0)+' m long with '+S.LF.toFixed(0)+
+        ' m friction length at each end. The centre '+S.lock.toFixed(0)+
+        ' m does not move; axial stress there is '+S.sig.toFixed(0)+' MPa.',
+        'Excavated material may be reused as backfill in the locked zone. Restrict later parallel excavation: max free length about '+
+        (0.0248*S.maxD*190/Math.max(S.sig,1)).toFixed(1)+' m at this stress.',
+        'EN 13941 / global stability',loc);
+    if(S.mixed)
+      push('watch','SEC-1','Mixed diameters within one expansion section',
+        'Section '+S.id+' contains more than one DN. Friction, area and stress have been length-weighted.',
+        'Check the reducer separately: EN 13941 requires forces and moments at reducers to be analysed, and stress concentration at the transition is typically 1.5.',
+        'EN 13941 reducers',loc);
+    /* cover checks per edge */
+    S.edges.forEach(e=>{
+      const p=edgeProps(e), cov=p.cover;
+      const hm=HMAX[p.p.d]?HMAX[p.p.d][p.series-1]:null;
+      if(cov<0.4)
+        push('watch','COV-1','Soil cover below the recommended minimum',
+          'Cover '+cov.toFixed(2)+' m over the casing on this length.',
+          'Provide at least 0.4 m under roads and 0.5 m in unpaved areas, or protect the pipes with a reinforced concrete or steel plate.',
+          'EN 13941 / trench',{k:'edge',id:e.id});
+      if(hm&&cov>hm)
+        push('watch','COV-2','Soil cover above the manufacturer maximum',
+          'Cover '+cov.toFixed(2)+' m exceeds the '+hm.toFixed(2)+
+          ' m maximum for DN'+e.dn+' series '+p.series+', which keeps the shear stress transferred through the foam within EN 253/13941 limits.',
+          'Reduce the depth, increase the insulation series, or agree the deeper installation with the supplier (usually acceptable inside a fully locked zone).',
+          'Manufacturer max cover',{k:'edge',id:e.id});
+    });
+  });
+
+  /* ====================== NETWORK-LEVEL NOTES ========================= */
+  if(M.ops.install!=='cold'){
+    const need=M.ops.Tins+A.sigAll/th.Ea;
+    if(M.ops.install==='ecomp'&&M.ops.Tpre<need-0.5)
+      push('watch','PRE-1','Pre-stress temperature is below the level the E-comps need',
+        'To close the compensators at '+A.sigAll.toFixed(0)+' MPa the pre-stress temperature must reach '+
+        need.toFixed(0)+' \u00b0C; '+M.ops.Tpre.toFixed(0)+' \u00b0C is set.',
+        'Raise the pre-heat temperature or reduce the spacing between E-comps.',
+        'Manufacturer E-comp rule',{k:'global'});
+    push('info','PRE-0','Pre-stressed installation assumed',
+      'Reference (stress-free) temperature '+th.Tref.toFixed(0)+' \u00b0C. Compressive stress '+
+      th.sigC.toFixed(0)+' MPa at Tmax, tensile '+th.sigT.toFixed(0)+' MPa at Tmin.',
+      'The fatigue stress range is unchanged by pre-stressing: bends and branches still see the full '+
+      th.dSig.toFixed(0)+' MPa range. Watch the tensile case, which pipes tolerate less well.',
+      'EN 13941 pre-stressing',{k:'global'});
+  }
+  if(th.sigT>A.sigAll+0.5)
+    push('watch','TEN-1','Tensile stress on cooling exceeds the design level',
+      'Cooling from '+th.Tref.toFixed(0)+' to '+M.ops.Tmin.toFixed(0)+' \u00b0C gives '+
+      th.sigT.toFixed(0)+' MPa tension.',
+      'Tension is more onerous than compression for welds and branches. Reconsider the reference temperature or the minimum design temperature.',
+      'EN 13941',{k:'global'});
+  if(!Object.keys(M.edges).length)
+    push('info','MOD-0','Nothing drawn yet','Sketch a route to start the analysis.',
+      'Use the Route tool, or load a template.','',{k:'global'});
+
+  /* ============================ SUMMARY =============================== */
+  let totLen=0,maxUtil=0,maxSig=0,maxMove=0;
+  for(const e of Object.values(M.edges)){const r=ER[e.id];totLen+=r.len;
+    maxUtil=Math.max(maxUtil,r.util);maxSig=Math.max(maxSig,r.sigMax);}
+  for(const nid in NR)maxMove=Math.max(maxMove,NR[nid].dR||0);
+  const tally={critical:0,high:0,watch:0,info:0};
+  F.forEach(f=>tally[f.sev]++);
+  const order={critical:0,high:1,watch:2,info:3};
+  F.sort((a,b)=>order[a.sev]-order[b.sev]);
+  F.forEach((f,i)=>f.id='F'+(i+1));
+
+  return{ok:true,A,th,sections,NR,ER,runs,findings:F,tally,
+    teeReport,bendReport,branchReport,
+    summary:{totLen,maxUtil,maxSig,maxMove,nSec:sections.length,
+      nNodes:Object.keys(M.nodes).length,nEdges:Object.keys(M.edges).length,
+      cls:A.cls,sigAll:A.sigAll,c1:A.c1,dsFat:A.dsFat,N:A.N}};
+}
+
+/* ============================ 4. VIEW / RENDER ========================== */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let V={sc:6,tx:0,ty:0,w:0,h:0,dpr:1};
+let mouse={x:0,y:0,wx:0,wy:0,down:false};
+let draw={active:false,pts:[],lastNode:null,preview:null,snap:null};
+let tool='route';
+
+const W2S=(x,y)=>({x:x*V.sc+V.tx,y:y*V.sc+V.ty});
+const S2W=(x,y)=>({x:(x-V.tx)/V.sc,y:(y-V.ty)/V.sc});
+
+function resize(){
+  const r=cv.parentElement.getBoundingClientRect();
+  V.dpr=window.devicePixelRatio||1; V.w=r.width; V.h=r.height;
+  cv.width=r.width*V.dpr; cv.height=r.height*V.dpr;
+  cv.style.width=r.width+'px'; cv.style.height=r.height+'px';
+  ctx.setTransform(V.dpr,0,0,V.dpr,0,0);
+  render();
+}
+function fit(){
+  const ns=Object.values(M.nodes);
+  if(!ns.length){V.sc=6;V.tx=V.w/2;V.ty=V.h/2;render();return;}
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  ns.forEach(n=>{x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x);y1=Math.max(y1,n.y);});
+  const pad=70, bw=Math.max(x1-x0,5), bh=Math.max(y1-y0,5);
+  V.sc=Math.min((V.w-2*pad)/bw,(V.h-2*pad)/bh);
+  V.sc=Math.max(.05,Math.min(V.sc,60));
+  V.tx=V.w/2-(x0+x1)/2*V.sc; V.ty=V.h/2-(y0+y1)/2*V.sc;
+  render();
+}
+
+/* colour ramp -----------------------------------------------------------*/
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const mix=(a,b,t)=>{const A=hex(a),B=hex(b);
+  return'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')+')';};
+function ramp(u){
+  const st=[[0,'#3f8a2e'],[0.5,'#7c9a1f'],[0.75,'#a8790a'],[0.9,'#c1531c'],[1,'#c1291f']];
+  if(u>=1)return u>1.25?'#8f1f17':'#c1291f';
+  for(let i=1;i<st.length;i++)
+    if(u<=st[i][0])return mix(st[i-1][1],st[i][1],(u-st[i-1][0])/(st[i][0]-st[i-1][0]));
+  return '#c1291f';
+}
+const SEVC={critical:'#8f1f17',high:'#c1531c',watch:'#a8790a',info:'#8a9600'};
+const INK='#111111', INKLIME='#8a9600';
+
+function niceStep(px){
+  const cand=[0.5,1,2,5,10,20,25,50,100,200,500,1000,2000];
+  for(const c of cand)if(c*V.sc>=px)return c;
+  return 5000;
+}
+
+function render(){
+  ctx.clearRect(0,0,V.w,V.h);
+  ctx.fillStyle='#f5f5f1'; ctx.fillRect(0,0,V.w,V.h);
+  if(M.view.grid)drawGrid();
+  const vw=M.view.show;
+
+  /* pads first (under pipes) */
+  if(M.view.pads&&R)drawPads();
+
+  /* edges */
+  for(const e of Object.values(M.edges)){
+    const A=M.nodes[e.a],B=M.nodes[e.b];if(!A||!B)continue;
+    const a=W2S(A.x,A.y),b=W2S(B.x,B.y);
+    const pr=edgeProps(e);
+    const casW=Math.max(5,Math.min(30,pr.Dc/1000*V.sc));
+    const stW=Math.max(2.6,Math.min(18,pr.d/1000*V.sc));
+    const r=R?R.ER[e.id]:null;
+    /* casing */
+    ctx.strokeStyle='#1a1a17';ctx.lineWidth=casW+2;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    ctx.strokeStyle='#d7d7d0';ctx.lineWidth=casW;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    /* service pipe */
+    let col='#3a3a34';
+    if(vw==='stress'&&r){
+      const g=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+      g.addColorStop(0,ramp(r.sigA/(R.A.sigAll||1)));
+      g.addColorStop(1,ramp(r.sigB/(R.A.sigAll||1)));
+      ctx.strokeStyle=g;
+    } else if(vw==='dn'){
+      const t=Math.min(1,(e.dn-20)/580); ctx.strokeStyle=mix('#d6d6cc','#12140a',t);
+    } else if(vw==='util'&&r){ctx.strokeStyle=ramp(r.util);}
+    else ctx.strokeStyle=col;
+    ctx.lineWidth=Math.max(2,stW);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    /* selection / hover */
+    if((sel.kind==='edge'&&sel.id===e.id)||(hover.kind==='edge'&&hover.id===e.id)){
+      ctx.strokeStyle=sel.id===e.id?'#c4d600':'#c4d60088';
+      ctx.lineWidth=casW+6;ctx.globalAlpha=.32;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.globalAlpha=1;
+    }
+    /* labels */
+    if(M.view.labels&&V.sc>2.2){
+      const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+      let ang=Math.atan2(b.y-a.y,b.x-a.x);
+      if(ang>Math.PI/2||ang<-Math.PI/2)ang+=Math.PI;
+      ctx.save();ctx.translate(mx,my);ctx.rotate(ang);
+      ctx.font='500 10px "IBM Plex Mono",monospace';ctx.textAlign='center';
+      const txt='DN'+e.dn+'/S'+(e.series||2)+'  '+edgeLen(e).toFixed(1)+' m';
+      const tw=ctx.measureText(txt).width;
+      ctx.fillStyle='rgba(255,255,255,.86)';ctx.fillRect(-tw/2-4,-casW/2-15,tw+8,13);
+      ctx.fillStyle='#54544e';ctx.fillText(txt,0,-casW/2-5);
+      ctx.restore();
+    }
+  }
+
+  /* section boundary ticks */
+  if(R){
+    R.sections.forEach(S=>{
+      [S.n0,S.n1].forEach(nid=>{const n=M.nodes[nid];if(!n)return;});
+    });
+  }
+
+  if(!Object.keys(M.edges).length&&!draw.active){
+    ctx.textAlign='center';
+    ctx.fillStyle='#6d6d63';ctx.font='600 15px system-ui,sans-serif';
+    ctx.fillText('Sketch a route to begin',V.w/2,V.h/2-14);
+    ctx.fillStyle='#9a9a90';ctx.font='400 12px system-ui,sans-serif';
+    ctx.fillText('Press R and click to place points \u00b7 Shift locks to 90\u00b0 \u00b7 Enter finishes',
+      V.w/2,V.h/2+8);
+    ctx.fillText('load a template from the top bar, or open the Guide for the full tool reference',
+      V.w/2,V.h/2+26);
+  }
+
+  /* nodes */
+  for(const n of Object.values(M.nodes))drawNode(n);
+
+  /* movement arrows */
+  if(M.view.moves&&R)drawMoves();
+
+  /* finding badges */
+  if(R)drawBadges();
+
+  /* live drawing preview */
+  if(draw.active&&draw.lastNode&&draw.preview){
+    const A=M.nodes[draw.lastNode],a=W2S(A.x,A.y),b=W2S(draw.preview.x,draw.preview.y);
+    ctx.setLineDash([6,5]);ctx.strokeStyle='#8a9600';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#12140a';
+    ctx.beginPath();ctx.arc(b.x,b.y,3.2,0,7);ctx.fill();
+    const L=Math.hypot(draw.preview.x-A.x,draw.preview.y-A.y);
+    const ang=(Math.atan2(draw.preview.y-A.y,draw.preview.x-A.x)*180/Math.PI+360)%360;
+    const txt=L.toFixed(1)+' m   '+ang.toFixed(0)+'\u00b0';
+    ctx.font='700 12px "IBM Plex Mono",monospace';ctx.textAlign='left';
+    const tw=ctx.measureText(txt).width;
+    ctx.fillStyle='#12140a';ctx.fillRect(b.x+9,b.y-27,tw+12,18);
+    ctx.fillStyle='#c4d600';ctx.fillText(txt,b.x+15,b.y-14);
+  }
+  if(draw.snap){
+    const s=W2S(draw.snap.x,draw.snap.y);
+    ctx.strokeStyle='#111111';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(s.x,s.y,9,0,7);ctx.stroke();
+  }
+  drawHud();
+}
+
+function drawGrid(){
+  const step=niceStep(58), s=step*V.sc;
+  const x0=Math.floor(-V.tx/s)*s+V.tx, y0=Math.floor(-V.ty/s)*s+V.ty;
+  ctx.lineWidth=1;
+  for(let x=x0;x<V.w;x+=s){
+    const wx=Math.round((x-V.tx)/V.sc);
+    ctx.strokeStyle=(Math.abs(wx)<1e-6)?'#cfcfc4':'#e6e6df';
+    ctx.beginPath();ctx.moveTo(Math.round(x)+.5,0);ctx.lineTo(Math.round(x)+.5,V.h);ctx.stroke();
+  }
+  for(let y=y0;y<V.h;y+=s){
+    const wy=Math.round((y-V.ty)/V.sc);
+    ctx.strokeStyle=(Math.abs(wy)<1e-6)?'#cfcfc4':'#e6e6df';
+    ctx.beginPath();ctx.moveTo(0,Math.round(y)+.5);ctx.lineTo(V.w,Math.round(y)+.5);ctx.stroke();
+  }
+}
+
+function drawNode(n){
+  const p=W2S(n.x,n.y), r=R?R.NR[n.id]:null;
+  const role=r?r.role:nodeRole(n,{});
+  const isSel=sel.kind==='node'&&sel.id===n.id;
+  const isHov=hover.kind==='node'&&hover.id===n.id;
+  const S=Math.max(4,Math.min(9,V.sc*0.5+3));
+  ctx.lineWidth=1.8;
+  if(isSel||isHov){ctx.fillStyle=isSel?'#c4d60040':'#c4d6001a';
+    ctx.beginPath();ctx.arc(p.x,p.y,S+7,0,7);ctx.fill();}
+  switch(role){
+    case 'anchor':
+      ctx.fillStyle='#12140a';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.rect(p.x-S,p.y-S,S*2,S*2);ctx.fill();ctx.stroke();
+      ctx.strokeStyle='#ffffff';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(p.x-S+2,p.y+S-2);ctx.lineTo(p.x+S-2,p.y-S+2);
+      ctx.moveTo(p.x-S+2,p.y-S+2);ctx.lineTo(p.x+S-2,p.y+S-2);ctx.stroke();break;
+    case 'tee':
+      ctx.fillStyle='#c4d600';ctx.strokeStyle='#12140a';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.moveTo(p.x,p.y-S-1);ctx.lineTo(p.x+S+1,p.y);
+      ctx.lineTo(p.x,p.y+S+1);ctx.lineTo(p.x-S-1,p.y);ctx.closePath();
+      ctx.fill();ctx.stroke();break;
+    case 'free':
+      ctx.fillStyle='#f5f5f1';ctx.strokeStyle='#8a8a80';ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(p.x,p.y,S*0.8,0,7);ctx.fill();ctx.stroke();break;
+    case 'ecomp':
+      ctx.strokeStyle='#8a9600';ctx.lineWidth=2.4;
+      ctx.beginPath();ctx.moveTo(p.x-S,p.y-S);ctx.lineTo(p.x-S,p.y+S);
+      ctx.moveTo(p.x+S,p.y-S);ctx.lineTo(p.x+S,p.y+S);ctx.stroke();
+      ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(p.x-S,p.y);ctx.lineTo(p.x+S,p.y);ctx.stroke();break;
+    case 'loop':
+      ctx.strokeStyle='#8a9600';ctx.lineWidth=2.2;
+      ctx.beginPath();ctx.arc(p.x,p.y-2,S,0.6*Math.PI,2.4*Math.PI);ctx.stroke();break;
+    case 'valve':
+      ctx.fillStyle='#c7c7bd';ctx.strokeStyle='#2a2a25';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.moveTo(p.x-S,p.y-S);ctx.lineTo(p.x+S,p.y+S);
+      ctx.lineTo(p.x-S,p.y+S);ctx.lineTo(p.x+S,p.y-S);ctx.closePath();ctx.fill();ctx.stroke();break;
+    case 'reducer':
+      ctx.fillStyle='#c7c7bd';ctx.strokeStyle='#2a2a25';ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.moveTo(p.x-S,p.y-S*0.8);ctx.lineTo(p.x+S,p.y-S*0.4);
+      ctx.lineTo(p.x+S,p.y+S*0.4);ctx.lineTo(p.x-S,p.y+S*0.8);ctx.closePath();ctx.fill();ctx.stroke();break;
+    default: /* bend / weld */
+      if(r&&r.ep){ctx.fillStyle='#3f8a2e';ctx.strokeStyle='#12140a';ctx.lineWidth=1.4;
+        ctx.beginPath();ctx.arc(p.x,p.y,S*0.75,0,7);ctx.fill();ctx.stroke();}
+      else{ctx.fillStyle='#5a5a52';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2.4,S*0.42),0,7);ctx.fill();}
+  }
+  if(n.label&&V.sc>2){
+    ctx.font='500 10px "IBM Plex Mono",monospace';ctx.fillStyle='#33332e';ctx.textAlign='center';
+    ctx.fillText(n.label,p.x,p.y-S-8);
+  }
+}
+
+function drawMoves(){
+  ctx.font='500 10px "IBM Plex Mono",monospace';
+  for(const nid in R.NR){
+    const r=R.NR[nid], n=M.nodes[nid]; if(!n)continue;
+    let vx=r.move.x,vy=r.move.y,d=r.dR;
+    if(r.role==='tee'&&r.teeVec){vx=r.teeVec.x;vy=r.teeVec.y;d=r.teeMove;}
+    if(d<1)continue;
+    const p=W2S(n.x,n.y);
+    const len=Math.max(16,Math.min(58,d*0.5));
+    const L=Math.hypot(vx,vy)||1, ux=vx/L, uy=vy/L;
+    const q={x:p.x+ux*len,y:p.y+uy*len};
+    const col=d>84?'#c1531c':'#8a9600';
+    ctx.strokeStyle=col;ctx.lineWidth=1.7;
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
+    const a=Math.atan2(uy,ux);
+    ctx.fillStyle=col;ctx.beginPath();
+    ctx.moveTo(q.x,q.y);
+    ctx.lineTo(q.x-8*Math.cos(a-0.38),q.y-8*Math.sin(a-0.38));
+    ctx.lineTo(q.x-8*Math.cos(a+0.38),q.y-8*Math.sin(a+0.38));
+    ctx.closePath();ctx.fill();
+    ctx.textAlign=ux<0?'right':'left';
+    ctx.fillText(d.toFixed(0)+' mm',q.x+(ux<0?-6:6),q.y+(uy<0?-4:11));
+  }
+}
+
+function drawPads(){
+  ctx.save();
+  for(const nid in R.NR){
+    const r=R.NR[nid], n=M.nodes[nid];
+    if(!r.pad||!r.pad.F||r.pad.layers<1||!n)continue;
+    const p=W2S(n.x,n.y);
+    edgesAt(nid).forEach(e=>{
+      const u=dirFrom(e,nid);
+      const Fm=r.pad.F, off=(edgeProps(e).Dc/1000*V.sc)/2+3;
+      const q=W2S(n.x+u.x*Fm,n.y+u.y*Fm);
+      const nx=-u.y,ny=u.x;
+      const th=Math.max(3,Math.min(12,r.pad.t/1000*V.sc*2.4));
+      ctx.fillStyle='rgba(196,214,0,.20)';ctx.strokeStyle='rgba(138,150,0,.55)';ctx.lineWidth=1;
+      [1,-1].forEach(sgn=>{
+        ctx.beginPath();
+        ctx.moveTo(p.x+nx*off*sgn,p.y+ny*off*sgn);
+        ctx.lineTo(q.x+nx*off*sgn,q.y+ny*off*sgn);
+        ctx.lineTo(q.x+nx*(off+th)*sgn,q.y+ny*(off+th)*sgn);
+        ctx.lineTo(p.x+nx*(off+th)*sgn,p.y+ny*(off+th)*sgn);
+        ctx.closePath();ctx.fill();ctx.stroke();
+      });
+    });
+  }
+  ctx.restore();
+}
+
+function drawBadges(){
+  const at={};
+  R.findings.forEach(f=>{
+    if(f.sev==='info')return;
+    let n=null;
+    if(f.loc.k==='node')n=M.nodes[f.loc.id];
+    else if(f.loc.k==='edge'){const e=M.edges[f.loc.id];
+      if(e){const A=M.nodes[e.a],B=M.nodes[e.b];n={x:(A.x+B.x)/2,y:(A.y+B.y)/2};}}
+    else if(f.loc.k==='section'&&R){const S=R.sections.find(s=>s.id===f.loc.id);
+      if(S){const e=S.edges[Math.floor(S.edges.length/2)];const A=M.nodes[e.a],B=M.nodes[e.b];
+        n={x:(A.x+B.x)/2,y:(A.y+B.y)/2};}}
+    if(!n)return;
+    const key=Math.round(n.x*4)+':'+Math.round(n.y*4);
+    at[key]=at[key]||{x:n.x,y:n.y,list:[]}; at[key].list.push(f);
+  });
+  Object.values(at).forEach(g=>{
+    const p=W2S(g.x,g.y);
+    const worst=g.list.reduce((a,b)=>({critical:0,high:1,watch:2,info:3}[a.sev]<=
+      {critical:0,high:1,watch:2,info:3}[b.sev]?a:b));
+    const sels=sel.kind==='find'&&g.list.some(f=>f.id===sel.id);
+    ctx.fillStyle=SEVC[worst.sev];ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(p.x+13,p.y-13,sels?9:7,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#ffffff';ctx.font='700 9px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.fillText(g.list.length>1?String(g.list.length):'!',p.x+13,p.y-10);
+  });
+}
+
+/* zoom presets: scale = 1/(metres per pixel) * 100  →  pixels per 100 m
+   e.g. 1:1000 means 100 m = 100 px → V.sc = 1/10 = 0.1 */
+const ZOOM_PRESETS=[
+  {label:'1 : 5 000', mpp:50,  sc:0.002},
+  {label:'1 : 2 000', mpp:20,  sc:0.005},
+  {label:'1 : 1 000', mpp:10,  sc:0.01},
+  {label:'1 : 500',  mpp:5,   sc:0.02},
+  {label:'1 : 200',  mpp:2,   sc:0.05},
+  {label:'1 : 100',  mpp:1,   sc:0.1},
+  {label:'1 : 50',   mpp:0.5, sc:0.2},
+  {label:'1 : 20',   mpp:0.2, sc:0.5},
+  {label:'1 : 10',   mpp:0.1, sc:1.0},
+];
+function applyZoom(sc,cx,cy){
+  cx=cx===undefined?V.w/2:cx; cy=cy===undefined?V.h/2:cy;
+  const bx=S2W(cx,cy);
+  V.sc=Math.max(0.001,Math.min(200,sc));
+  const ax=S2W(cx,cy);
+  V.tx+=(ax.x-bx.x)*V.sc; V.ty+=(ax.y-bx.y)*V.sc;
+  render();
+}
+function setZoomPreset(sc){
+  const cx=V.w/2, cy=V.h/2;
+  const world=S2W(cx,cy);
+  V.sc=sc;
+  V.tx=cx-world.x*V.sc; V.ty=cy-world.y*V.sc;
+  render();
+}
+function currentZoomLabel(){
+  const mpp=1/V.sc; // metres per pixel
+  let best=ZOOM_PRESETS[0], bd=Infinity;
+  ZOOM_PRESETS.forEach(z=>{const d=Math.abs(Math.log(z.sc)-Math.log(V.sc));if(d<bd){bd=d;best=z;}});
+  return bd<0.3?best.label:((1/V.sc*100).toFixed(1)+' m/100px');
+}
+let _hudBuilt=false;
+function drawHud(){
+  const step=niceStep(58);
+  const tl=document.getElementById('hudTL'), br=document.getElementById('hudBR');
+  if(!_hudBuilt){
+    tl.innerHTML='<div class="zoomctl" id="zoomctl">'+
+      '<button id="zOut" title="Zoom out (\u2212)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>'+
+      '<div class="zdiv"></div>'+
+      '<select id="zoomSel" title="Set a drawing scale">'+
+        ZOOM_PRESETS.map(z=>'<option value="'+z.sc+'">'+z.label+'</option>').join('')+
+      '</select>'+
+      '<div class="zdiv"></div>'+
+      '<button id="zIn" title="Zoom in (+)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>'+
+      '<div class="zdiv"></div>'+
+      '<button id="zFit" title="Zoom to fit (Home)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>'+
+      '<div class="zdiv"></div>'+
+      '<span id="zGrid" style="padding:3px 8px;font-size:10px;color:#c8c8bc;white-space:nowrap">grid</span>'+
+    '</div>';
+    document.getElementById('zOut').onclick=()=>applyZoom(V.sc/1.5);
+    document.getElementById('zIn').onclick=()=>applyZoom(V.sc*1.5);
+    document.getElementById('zFit').onclick=fit;
+    document.getElementById('zoomSel').onchange=e=>setZoomPreset(parseFloat(e.target.value));
+    _hudBuilt=true;
+  }
+  /* update the dropdown to reflect current zoom, but don't trigger onchange */
+  const sel=document.getElementById('zoomSel');
+  if(sel){
+    let bestIdx=0, bd=Infinity;
+    ZOOM_PRESETS.forEach((z,i)=>{const d=Math.abs(Math.log(z.sc)-Math.log(V.sc));if(d<bd){bd=d;bestIdx=i;}});
+    if(bd<0.3)sel.selectedIndex=bestIdx; else sel.selectedIndex=-1;
+  }
+  const g=document.getElementById('zGrid');
+  if(g)g.textContent='grid '+step+' m';
+  br.innerHTML='<span class="chip">x '+mouse.wx.toFixed(1)+' &nbsp; y '+mouse.wy.toFixed(1)+' m</span>';
+}
+
+/* ============================ 5. INTERACTION ============================ */
+const TOOLS=[
+ {id:'select',k:'V',tip:'Select & move (V)',svg:'<path d="M4 3l7 17 2.5-6.5L20 11z"/>'},
+ {id:'route', k:'R',tip:'Draw route (R) — click to place, double-click or Enter to finish',
+   svg:'<path d="M3 20h6l4-8h8"/><circle cx="3" cy="20" r="1.6"/><circle cx="21" cy="12" r="1.6"/>'},
+ {id:'branch',k:'B',tip:'Branch off a pipe (B) — click on a pipe to tee off',
+   svg:'<path d="M3 6h18M12 6v14"/>'},
+ {id:'erase', k:'X',tip:'Erase (X)',svg:'<path d="M4 20h16M6 16L16 6l4 4L10 20z"/>'},
+ {sep:1},
+ {id:'anchor',k:'A',tip:'Fixed point / anchor (A) — click a node',
+   svg:'<rect x="6" y="6" width="12" height="12"/><path d="M6 18L18 6M6 6l12 12"/>'},
+ {id:'free',  k:'F',tip:'Free end (F) — click a node',svg:'<circle cx="12" cy="12" r="6"/>'},
+ {id:'loop',  k:'U',tip:'U-loop / expansion element (U) — click a node',
+   svg:'<path d="M6 20V11a6 6 0 0112 0v9"/>'},
+ {id:'ecomp', k:'E',tip:'E-comp one-shot compensator (E) — click a node',
+   svg:'<path d="M8 5v14M16 5v14M8 12h8"/>'},
+ {id:'valve', k:'W',tip:'Valve (W) — click a node',
+   svg:'<path d="M5 6l14 12M5 18L19 6M5 6v12M19 6v12"/>'},
+ {id:'clear', k:'',tip:'Clear node marker — back to automatic',
+   svg:'<circle cx="12" cy="12" r="7"/><path d="M9 15l6-6"/>'},
+ {sep:1},
+ {id:'insuloop',k:'O',tip:'Insert U-loop (O) — click a pipe to break it in, or press while drawing to append. Shift flips the side.',
+   svg:'<path d="M5 20V10a5 5 0 0110 0v10"/><path d="M3 20h4M13 20h4"/>'},
+ {id:'insz',k:'Z',tip:'Insert Z-offset (Z) — click a pipe to break it in, or press while drawing to append. Shift flips the side.',
+   svg:'<path d="M4 7h7v10h9"/>'},
+ {sep:1},
+ {id:'fit',   k:'',tip:'Zoom to fit (Home)',
+   svg:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',act:()=>fit()},
+ {id:'tlabel',k:'',tip:'Labels on/off',svg:'<path d="M4 7h16M4 12h10M4 17h13"/>',
+   act:()=>{M.view.labels=!M.view.labels;render();syncRail();}},
+ {id:'tpad',  k:'',tip:'Foam pads on/off',
+   svg:'<rect x="3" y="9" width="18" height="6" rx="1"/><path d="M7 9v6M11 9v6M15 9v6"/>',
+   act:()=>{M.view.pads=!M.view.pads;render();syncRail();}},
+ {id:'tmove', k:'',tip:'Movement vectors on/off',svg:'<path d="M4 12h14M14 7l5 5-5 5"/>',
+   act:()=>{M.view.moves=!M.view.moves;render();syncRail();}}
+];
+function buildRail(){
+  const r=document.getElementById('rail'); r.innerHTML='';
+  TOOLS.forEach(t=>{
+    if(t.sep){const d=document.createElement('div');d.className='railsep';r.appendChild(d);return;}
+    const b=document.createElement('button');
+    b.className='tool';b.dataset.id=t.id;b.dataset.tip=t.tip;
+    b.innerHTML='<svg viewBox="0 0 24 24">'+t.svg+'</svg>'+(t.k?'<i>'+t.k+'</i>':'');
+    b.onclick=(ev)=>{
+      if(t.act){t.act();return;}
+      if((t.id==='insuloop'||t.id==='insz')&&draw.active){
+        insertDetourWhileDrawing(t.id==='insuloop'?'uloop':'zoffset',ev);
+        return;
+      }
+      tool=t.id; endDraw(); syncRail();
+    };
+    r.appendChild(b);
+  });
+  syncRail();
+}
+function syncRail(){
+  document.querySelectorAll('.tool').forEach(b=>{
+    const id=b.dataset.id;
+    let on=(id===tool);
+    if(id==='tlabel')on=M.view.labels; if(id==='tpad')on=M.view.pads; if(id==='tmove')on=M.view.moves;
+    if(id==='fit')on=false;
+    b.classList.toggle('on',on);
+  });
+  cv.style.cursor=tool==='select'?'default':(tool==='erase'?'not-allowed':'crosshair');
+}
+
+/* hit tests -------------------------------------------------------------*/
+function hitNode(sx,sy,rad){
+  rad=rad||11; let best=null,bd=rad;
+  for(const n of Object.values(M.nodes)){
+    const p=W2S(n.x,n.y),d=Math.hypot(p.x-sx,p.y-sy);
+    if(d<bd){bd=d;best=n;}
+  }
+  return best;
+}
+function hitEdge(sx,sy,rad){
+  rad=rad||9; let best=null,bd=rad,bt=0;
+  for(const e of Object.values(M.edges)){
+    const A=M.nodes[e.a],B=M.nodes[e.b];if(!A||!B)continue;
+    const a=W2S(A.x,A.y),b=W2S(B.x,B.y);
+    const dx=b.x-a.x,dy=b.y-a.y,L2=dx*dx+dy*dy||1;
+    let t=((sx-a.x)*dx+(sy-a.y)*dy)/L2; t=Math.max(0,Math.min(1,t));
+    const d=Math.hypot(a.x+t*dx-sx,a.y+t*dy-sy);
+    if(d<bd){bd=d;best=e;bt=t;}
+  }
+  return best?{e:best,t:bt}:null;
+}
+function splitEdge(e,t){
+  const A=M.nodes[e.a],B=M.nodes[e.b];
+  const x=A.x+(B.x-A.x)*t, y=A.y+(B.y-A.y)*t;
+  const nid=addNode(x,y,'auto');
+  const props={dn:e.dn,series:e.series,cover:e.cover,soil:e.soil};
+  const b=e.b; delete M.edges[e.id];
+  addEdge(e.a,nid,props); addEdge(nid,b,props);
+  return nid;
+}
+
+/* ---- U-loop / Z-offset insertion ---------------------------------------
+   Both build real, editable pipe geometry (not just a marker) so the
+   pad-fit and Z/loop-leg checks in the engine apply to them directly.    */
+function loopDefaults(dn){
+  return{depth:Math.max(2.5,Math.min(8,2.5+dn/120)),
+         width:Math.max(1.5,Math.min(5,1.5+dn/200))};
+}
+function zOffsetDefault(dn){return Math.max(2,Math.min(6,2+dn/150));}
+function unitPerp(dir,flip){return flip?{x:dir.y,y:-dir.x}:{x:-dir.y,y:dir.x};}
+
+/* click on an existing straight pipe: split it and splice the detour in,
+   reconnecting to the original far node so the rest of the route is
+   undisturbed. */
+function insertDetourOnEdge(kind,he,ev){
+  const e=he.e;
+  const opts={dn:e.dn,series:e.series,cover:e.cover,soil:e.soil};
+  const Ax=M.nodes[e.a].x,Ay=M.nodes[e.a].y,Bx=M.nodes[e.b].x,By=M.nodes[e.b].y;
+  const L=Math.hypot(Bx-Ax,By-Ay)||1;
+  const dir={x:(Bx-Ax)/L,y:(By-Ay)/L};
+  const farB=e.b;
+  const splitNode=splitEdge(e,he.t);
+  const es=edgesAt(splitNode);
+  const fwd=es.find(ee=>other(ee,splitNode)===farB);
+  if(fwd)delete M.edges[fwd.id];
+  const flip=!!(ev&&ev.shiftKey);
+  const exit=buildDetour(kind,splitNode,dir,opts,flip);
+  addEdge(exit,farB,opts);
+  select('node',splitNode);
+  snapshot(); run();
+  toast((kind==='uloop'?'U-loop':'Z-offset')+' inserted \u2014 drag its nodes to resize');
+}
+
+/* trigger mid-route: append the detour at the current drawing tip and
+   keep the route open so the person can carry straight on drawing. */
+function insertDetourWhileDrawing(kind,ev){
+  if(!draw.active||!draw.lastNode)return;
+  const nid=draw.lastNode, es=edgesAt(nid);
+  let dir=null, opts={dn:M.def.dn,series:M.def.series};
+  if(es.length){
+    const prev=other(es[0],nid);
+    const px=M.nodes[prev].x,py=M.nodes[prev].y,cx=M.nodes[nid].x,cy=M.nodes[nid].y;
+    const L=Math.hypot(cx-px,cy-py)||1;
+    dir={x:(cx-px)/L,y:(cy-py)/L};
+    opts={dn:es[0].dn,series:es[0].series};
+  } else if(draw.preview){
+    const cx=M.nodes[nid].x,cy=M.nodes[nid].y;
+    const dx=draw.preview.x-cx,dy=draw.preview.y-cy,L=Math.hypot(dx,dy)||1;
+    dir={x:dx/L,y:dy/L};
+  } else dir={x:1,y:0};
+  const flip=!!(ev&&ev.shiftKey);
+  const exit=buildDetour(kind,nid,dir,opts,flip);
+  draw.lastNode=exit; draw.preview=null;
+  snapshot(); run();
+  toast((kind==='uloop'?'U-loop':'Z-offset')+' added \u2014 keep drawing or press Enter to finish');
+}
+
+/* shared geometry builder used by both entry points above */
+function buildDetour(kind,fromId,dir,opts,flip){
+  const A=M.nodes[fromId], perp=unitPerp(dir,flip);
+  if(kind==='uloop'){
+    const{depth,width}=loopDefaults(opts.dn);
+    const p1=addNode(A.x+perp.x*depth,A.y+perp.y*depth,'auto');
+    addEdge(fromId,p1,opts);
+    const p2=addNode(M.nodes[p1].x+dir.x*width,M.nodes[p1].y+dir.y*width,'auto');
+    addEdge(p1,p2,opts);
+    const p3=addNode(M.nodes[p2].x-perp.x*depth,M.nodes[p2].y-perp.y*depth,'auto');
+    addEdge(p2,p3,opts);
+    return p3;
+  }
+  const off=zOffsetDefault(opts.dn);
+  const p1=addNode(A.x+perp.x*off,A.y+perp.y*off,'auto');
+  addEdge(fromId,p1,opts);
+  return p1;
+}
+
+/* snapping --------------------------------------------------------------*/
+function snapPoint(wx,wy,ev){
+  const sp=W2S(wx,wy);
+  draw.snap=null;
+  const n=hitNode(sp.x,sp.y,13);
+  if(n){draw.snap={x:n.x,y:n.y,node:n.id};return{x:n.x,y:n.y,node:n.id};}
+  const he=hitEdge(sp.x,sp.y,9);
+  if(he&&tool!=='select'){
+    const A=M.nodes[he.e.a],B=M.nodes[he.e.b];
+    const x=A.x+(B.x-A.x)*he.t,y=A.y+(B.y-A.y)*he.t;
+    draw.snap={x,y,edge:he.e.id,t:he.t};return{x,y,edge:he.e.id,t:he.t};
+  }
+  if(ev&&ev.altKey)return{x:wx,y:wy};
+  const g=niceStep(58)/4;
+  return{x:Math.round(wx/g)*g,y:Math.round(wy/g)*g};
+}
+function snapFrom(ax,ay,wx,wy,ev){
+  if(ev&&ev.altKey)return{x:wx,y:wy};
+  let dx=wx-ax,dy=wy-ay,L=Math.hypot(dx,dy);
+  if(L<1e-6)return{x:wx,y:wy};
+  let a=Math.atan2(dy,dx)*180/Math.PI;
+  const inc=ev&&ev.shiftKey?90:15;
+  a=Math.round(a/inc)*inc;
+  const g=Math.max(0.5,niceStep(58)/10);
+  L=Math.round(L/g)*g;
+  const rad=a*Math.PI/180;
+  return{x:ax+Math.cos(rad)*L,y:ay+Math.sin(rad)*L};
+}
+
+/* drawing ---------------------------------------------------------------*/
+function beginDraw(nid){draw.active=true;draw.lastNode=nid;}
+function endDraw(){
+  if(draw.active){draw.active=false;draw.lastNode=null;draw.preview=null;
+    hideLen();snapshot();run();}
+  draw.snap=null;render();
+}
+function placePoint(w,ev){
+  let target=null;
+  if(w.node)target=w.node;
+  else if(w.edge){const e=M.edges[w.edge];target=splitEdge(e,w.t);}
+  if(!draw.active){
+    if(!target)target=addNode(w.x,w.y,'auto');
+    beginDraw(target);return;
+  }
+  const A=M.nodes[draw.lastNode];
+  const s=(w.node||w.edge)?{x:w.x,y:w.y}:snapFrom(A.x,A.y,w.x,w.y,ev);
+  if(!target)target=addNode(s.x,s.y,'auto');
+  if(target!==draw.lastNode&&Math.hypot(M.nodes[target].x-A.x,M.nodes[target].y-A.y)>0.05){
+    addEdge(draw.lastNode,target); draw.lastNode=target; snapshot(); run();
+  }
+}
+
+/* length entry ----------------------------------------------------------*/
+const lenbox=document.getElementById('lenbox'), lenInput=document.getElementById('lenInput');
+function showLen(){if(!draw.active||!draw.lastNode)return;
+  const A=M.nodes[draw.lastNode],p=W2S(A.x,A.y);
+  lenbox.style.display='block';lenbox.style.left=(p.x+18)+'px';lenbox.style.top=(p.y+14)+'px';
+  lenInput.focus();}
+function hideLen(){lenbox.style.display='none';lenInput.value='';}
+lenInput.addEventListener('keydown',ev=>{
+  ev.stopPropagation();
+  if(ev.key==='Enter'){
+    const v=parseFloat(lenInput.value);
+    if(v>0&&draw.lastNode){
+      const A=M.nodes[draw.lastNode];
+      let ang=draw.preview?Math.atan2(draw.preview.y-A.y,draw.preview.x-A.x):0;
+      const inc=15*Math.PI/180; ang=Math.round(ang/inc)*inc;
+      const id=addNode(A.x+Math.cos(ang)*v,A.y+Math.sin(ang)*v,'auto');
+      addEdge(draw.lastNode,id);draw.lastNode=id;snapshot();run();
+    }
+    hideLen();
+  } else if(ev.key==='Escape'){hideLen();}
+});
+
+/* mouse -----------------------------------------------------------------*/
+let pan=null, dragNode=null;
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('mousedown',ev=>{
+  const r=cv.getBoundingClientRect(), sx=ev.clientX-r.left, sy=ev.clientY-r.top;
+  const w=S2W(sx,sy);
+  if(ev.button===1||ev.button===2||(ev.button===0&&ev.code==='Space')){
+    pan={sx,sy,tx:V.tx,ty:V.ty};return;
+  }
+  if(ev.button!==0)return;
+  const sn=snapPoint(w.x,w.y,ev);
+  if(tool==='route'){placePoint(sn,ev);render();return;}
+  if(tool==='branch'){
+    const he=hitEdge(sx,sy,11);
+    if(he){const nid=splitEdge(he.e,he.t);beginDraw(nid);tool='route';syncRail();snapshot();run();}
+    else toast('Click on an existing pipe to branch from it');
+    return;
+  }
+  if(tool==='insuloop'||tool==='insz'){
+    const he=hitEdge(sx,sy,11);
+    if(he)insertDetourOnEdge(tool==='insuloop'?'uloop':'zoffset',he,ev);
+    else toast('Click on an existing pipe to insert it there');
+    return;
+  }
+  if(tool==='erase'){
+    const n=hitNode(sx,sy);
+    if(n){delNode(n.id);snapshot();run();return;}
+    const he=hitEdge(sx,sy);
+    if(he){delEdge(he.e.id);snapshot();run();}
+    return;
+  }
+  if(['anchor','free','loop','ecomp','valve','clear'].includes(tool)){
+    let n=hitNode(sx,sy,14);
+    if(!n){const he=hitEdge(sx,sy,10);if(he)n=M.nodes[splitEdge(he.e,he.t)];}
+    if(n){n.type=(tool==='clear')?'auto':tool;select('node',n.id);snapshot();run();}
+    return;
+  }
+  /* select tool */
+  const n=hitNode(sx,sy);
+  if(n){select('node',n.id);dragNode={id:n.id,ox:n.x-w.x,oy:n.y-w.y,moved:false};return;}
+  const he=hitEdge(sx,sy);
+  if(he){select('edge',he.e.id);return;}
+  select(null,null); pan={sx,sy,tx:V.tx,ty:V.ty};
+});
+window.addEventListener('mousemove',ev=>{
+  const r=cv.getBoundingClientRect(), sx=ev.clientX-r.left, sy=ev.clientY-r.top;
+  mouse.x=sx;mouse.y=sy;
+  const w=S2W(sx,sy); mouse.wx=w.x; mouse.wy=w.y;
+  if(pan){V.tx=pan.tx+(sx-pan.sx);V.ty=pan.ty+(sy-pan.sy);render();return;}
+  if(dragNode){
+    const n=M.nodes[dragNode.id];
+    const sn=snapPoint(w.x+dragNode.ox,w.y+dragNode.oy,ev);
+    n.x=sn.x;n.y=sn.y;dragNode.moved=true;run();return;
+  }
+  if(sx<0||sy<0||sx>V.w||sy>V.h){return;}
+  if(draw.active&&draw.lastNode){
+    const A=M.nodes[draw.lastNode];
+    const sn=snapPoint(w.x,w.y,ev);
+    draw.preview=(sn.node||sn.edge)?{x:sn.x,y:sn.y}:snapFrom(A.x,A.y,sn.x,sn.y,ev);
+    render();return;
+  }
+  if(tool!=='select')snapPoint(w.x,w.y,ev);
+  const n=hitNode(sx,sy); const he=n?null:hitEdge(sx,sy);
+  const nh={kind:n?'node':(he?'edge':null),id:n?n.id:(he?he.e.id:null)};
+  if(nh.kind!==hover.kind||nh.id!==hover.id){hover=nh;render();}
+  else drawHud();
+});
+window.addEventListener('mouseup',()=>{
+  if(dragNode&&dragNode.moved)snapshot();
+  pan=null;dragNode=null;
+});
+cv.addEventListener('dblclick',()=>{if(draw.active)endDraw();});
+cv.addEventListener('wheel',ev=>{
+  ev.preventDefault();
+  const r=cv.getBoundingClientRect(), sx=ev.clientX-r.left, sy=ev.clientY-r.top;
+  const before=S2W(sx,sy);
+  const f=Math.exp(-ev.deltaY*0.0016);
+  V.sc=Math.max(0.03,Math.min(200,V.sc*f));
+  const after=S2W(sx,sy);
+  V.tx+=(after.x-before.x)*V.sc; V.ty+=(after.y-before.y)*V.sc;
+  render();
+},{passive:false});
+
+window.addEventListener('keydown',ev=>{
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  const k=ev.key.toLowerCase();
+  if(ev.ctrlKey||ev.metaKey){
+    if(k==='z'){ev.preventDefault();ev.shiftKey?redo():undo();}
+    if(k==='y'){ev.preventDefault();redo();}
+    if(k==='s'){ev.preventDefault();saveFile();}
+    return;
+  }
+  if(ev.key==='Escape'){if(draw.active)endDraw();else select(null,null);return;}
+  if(ev.key==='Enter'){if(draw.active)endDraw();return;}
+  if(ev.key==='Delete'||ev.key==='Backspace'){
+    if(sel.kind==='node'){delNode(sel.id);select(null,null);snapshot();run();}
+    else if(sel.kind==='edge'){delEdge(sel.id);select(null,null);snapshot();run();}
+    return;
+  }
+  if(ev.key==='Home'){fit();return;}
+  if(draw.active&&/^[0-9.]$/.test(ev.key)){showLen();lenInput.value=ev.key;return;}
+  if((k==='o'||k==='z')&&draw.active){
+    insertDetourWhileDrawing(k==='o'?'uloop':'zoffset',ev);
+    return;
+  }
+  const map={v:'select',r:'route',b:'branch',x:'erase',a:'anchor',f:'free',u:'loop',e:'ecomp',w:'valve',
+             o:'insuloop',z:'insz'};
+  if(map[k]){tool=map[k];endDraw();syncRail();}
+  if(k==='l'){M.view.labels=!M.view.labels;render();syncRail();}
+});
+
+/* ============================ 6. UI ===================================== */
+const $=id=>document.getElementById(id);
+function getPath(o,p){return p.split('.').reduce((a,k)=>a&&a[k],o);}
+function setPath(o,p,v){const k=p.split('.');const last=k.pop();
+  const t=k.reduce((a,x)=>a[x],o);t[last]=v;}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1800);}
+function select(kind,id){sel={kind,id};buildElementPane();
+  if(kind)showTab('pElement');render();}
+function showTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pane===id));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===id));
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showTab(t.dataset.pane));
+
+const fmt=(v,d)=>(v===undefined||v===null||isNaN(v))?'\u2013':Number(v).toFixed(d===undefined?1:d);
+const cls=u=>u>=1?'bad':u>=0.9?'high':u>=0.75?'watch':'ok';
+
+/* ---- generic controls ------------------------------------------------- */
+const numF=(bind,step,min,max)=>'<input class="fld" type="number" data-bind="'+bind+
+  '" step="'+(step||1)+'"'+(min!==undefined?' min="'+min+'"':'')+(max!==undefined?' max="'+max+'"':'')+'>';
+const selF=(bind,opts)=>'<select class="fld" data-bind="'+bind+'">'+
+  opts.map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join('')+'</select>';
+const rowF=(label,sub,ctrl,wide)=>'<div class="row'+(wide?' w':'')+'"><label>'+label+
+  (sub?'<small>'+sub+'</small>':'')+'</label>'+ctrl+'</div>';
+const cardF=(id,title,ref,body,closed)=>'<div class="card'+(closed?' closed':'')+'" id="'+id+
+  '"><h4>'+title+(ref?'<span class="cref">'+ref+'</span>':'')+
+  '<span class="cx">\u25be</span></h4><div class="cbody">'+body+'</div></div>';
+const kv=(k,v,c)=>'<div class="kv"><span>'+k+'</span><b'+(c?' class="'+c+'"':'')+'>'+v+'</b></div>';
+
+document.addEventListener('click',ev=>{
+  const h=ev.target.closest('.card>h4');
+  if(h){h.parentElement.classList.toggle('closed');}
+  const sb=ev.target.closest('[data-set]');
+  if(sb){const[p,v]=sb.dataset.set.split('|');
+    let val=v; if(v==='true')val=true; else if(v==='false')val=false;
+    else if(!isNaN(parseFloat(v))&&/^-?[\d.]+$/.test(v))val=parseFloat(v);
+    setPath(M,p,val);
+    sb.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===sb));
+    onModelChange();}
+});
+document.addEventListener('change',ev=>{
+  const el=ev.target.closest('[data-bind]'); if(!el)return;
+  let v=el.type==='checkbox'?el.checked:(el.type==='number'?parseFloat(el.value):el.value);
+  if(el.type==='number'&&isNaN(v))v=0;
+  setPath(M,el.dataset.bind,v); onModelChange();
+});
+document.addEventListener('input',ev=>{
+  const el=ev.target.closest('[data-bind]');
+  if(el&&el.type==='number'){const v=parseFloat(el.value);
+    if(!isNaN(v)){setPath(M,el.dataset.bind,v);onModelChange(true);}}
+});
+function onModelChange(light){
+  if(M.soil.preset&&SOILS[M.soil.preset]&&M.soil.preset!=='custom'&&!M._soilTouch){
+    const s=SOILS[M.soil.preset];M.soil.g=s.g;M.soil.K0=s.K0;M.soil.mu=s.mu;
+  }
+  M._soilTouch=false;
+  if(M.design.duty&&DUTY[M.design.duty]&&!M._dutyTouch)M.design.cycles=DUTY[M.design.duty];
+  M._dutyTouch=false;
+  run(); if(!light)snapshot();
+}
+
+/* ---- PROJECT PANE ----------------------------------------------------- */
+function buildProjectPane(){
+  const dnOpts=PIPES.map(p=>[p.dn,'DN '+p.dn+'  ('+p.d+' \u00d7 '+p.t+' mm)']);
+  const html=
+  cardF('cProj','Project','',
+    rowF('Reference','Drawing / job no.','<input class="fld" data-bind="meta.ref" type="text">')+
+    rowF('Designer','','<input class="fld" data-bind="meta.by" type="text">')+
+    rowF('Client','','<input class="fld" data-bind="meta.client" type="text">')+
+    rowF('Date','','<input class="fld" data-bind="meta.date" type="date">'),true)+
+
+  cardF('cOps','Operating conditions','EN 13941 \u00a75',
+    rowF('Network','','<div class="seg"><button data-set="ops.medium|heating">Heating</button>'+
+      '<button data-set="ops.medium|cooling">Cooling</button></div>',true)+
+    rowF('Max design temperature','Tmax \u2014 \u00b0C',numF('ops.Tmax',5,-20,160))+
+    rowF('Min design temperature','Tmin \u2014 \u00b0C',numF('ops.Tmin',5,-20,160))+
+    rowF('Installation temperature','Tins at backfill \u2014 \u00b0C',numF('ops.Tins',5,-20,60))+
+    rowF('Design pressure','p \u2014 MPa',numF('ops.pDesign',0.1,0,4))+
+    rowF('Installation method','',
+      '<div class="seg"><button data-set="ops.install|cold">Cold laid</button>'+
+      '<button data-set="ops.install|preheat">Pre-heat</button>'+
+      '<button data-set="ops.install|ecomp">E-comp</button></div>',true)+
+    rowF('Pre-stress temperature','Tpre \u2014 \u00b0C',numF('ops.Tpre',5,0,140))+
+    '<div class="note" id="opsNote"></div>')+
+
+  cardF('cSoil','Soil & trench','EN 13941-2',
+    rowF('Backfill / surround','',selF('soil.preset',
+      Object.keys(SOILS).map(k=>[k,SOILS[k].name])),true)+
+    rowF('Unit weight','\u03b3 \u2014 kN/m\u00b3',numF('soil.g',0.5,10,24))+
+    rowF('Earth pressure at rest','K\u2080',numF('soil.K0',0.01,0.2,1))+
+    rowF('Friction coefficient','\u03bc, casing/soil',numF('soil.mu',0.01,0.1,0.8))+
+    rowF('Soil cover','H to top of casing \u2014 m',numF('soil.cover',0.1,0.2,6))+
+    rowF('Groundwater depth','below surface \u2014 m (99 = none)',numF('soil.gwl',0.1,0,99))+
+    rowF('Working space','each side of casing \u2014 mm',numF('soil.workAllow',25,0,600))+
+    rowF('Max trench width','m \u2014 0 disables the check',numF('soil.trenchMax',0.1,0,6))+
+    rowF('Clear gap to adjacent pipe','mm \u2014 0 disables the check',numF('soil.pairGap',25,0,600))+
+    '<div class="note">Friction force <b>F = \u03bc[(1+K\u2080)/2 \u00b7 \u03c3\u1d65 \u00b7 \u03c0D + G \u2212 \u03b3\u03c0D\u00b2/4]</b>. '+
+    'The trench needs at least 100 mm of stoneless friction material around each casing, '+
+    'compacted to about 97% standard Proctor, for these values to hold.</div>')+
+
+  cardF('cPipe','Default pipe','EN 253',
+    rowF('Nominal size','',selF('def.dn',dnOpts),true)+
+    rowF('Insulation series','',
+      '<div class="seg"><button data-set="def.series|1">Series 1</button>'+
+      '<button data-set="def.series|2">Series 2</button>'+
+      '<button data-set="def.series|3">Series 3</button></div>',true)+
+    '<div class="btn2" style="margin-top:8px"><button class="btn" id="applyAllDn">Apply DN to all</button>'+
+    '<button class="btn" id="applyAllSer">Apply series to all</button></div>'+
+    '<div class="note" id="pipeNote"></div>')+
+
+  cardF('cClass','Design class & stress limits','EN 13941 \u00a76',
+    rowF('Project class','',
+      '<div class="seg"><button data-set="design.cls|auto">Auto</button>'+
+      '<button data-set="design.cls|A">A</button><button data-set="design.cls|B">B</button>'+
+      '<button data-set="design.cls|C">C</button></div>',true)+
+    '<div class="note" id="clsNote"></div>'+
+    rowF('Network duty','sets equivalent full cycles',selF('design.duty',[
+      ['transmission','Transmission \u2014 100 cycles'],['distribution','Distribution \u2014 250'],
+      ['service','Service connection \u2014 1000'],['solar','High-cycle / solar \u2014 3000']]),true)+
+    rowF('Equivalent full cycles','N',numF('design.cycles',50,1,100000))+
+    rowF('Allowable axial stress','',
+      '<div class="seg"><button data-set="design.sigMode|manual">Set level</button>'+
+      '<button data-set="design.sigMode|c1">Use C1 limit</button></div>',true)+
+    rowF('Adopted level','\u03c3all \u2014 MPa',numF('design.sigAll',10,50,400))+
+    rowF('Fatigue partial factor','0 = use class default',numF('design.gFat',0.05,0,3))+
+    rowF('Default branch detail','used unless a tee is set individually',selF('design.teeType',
+      Object.keys(SCFS).map(k=>[k,SCFS[k].name])),true)+
+    rowF('Free-expansion bend angle','\u00b0 \u2014 bends at or above this relieve stress',
+      numF('design.flexAngle',5,20,90))+
+    rowF('Anchor stress limit','MPa',numF('design.anchorLimit',10,50,400))+
+    rowF('Temperature-dependent E, \u03b1','off = 2.52 MPa/K',
+      '<div class="seg"><button data-set="design.exactE|false">2.52</button>'+
+      '<button data-set="design.exactE|true">E(T)</button></div>',true)+
+    '<div class="note" id="allowNote"></div>')+
+
+  cardF('cView','Display','',
+    rowF('Colour pipes by','',selF('view.show',[['stress','Axial stress'],
+      ['util','Utilisation vs \u03c3all'],['dn','Diameter'],['plain','Plain']]),true)+
+    '<div class="btn2"><button class="btn" data-toggle="view.labels">Labels</button>'+
+    '<button class="btn" data-toggle="view.grid">Grid</button>'+
+    '<button class="btn" data-toggle="view.pads">Foam pads</button>'+
+    '<button class="btn" data-toggle="view.moves">Movements</button></div>'+
+    '<div class="btn2" style="margin-top:6px"><button class="btn" id="btnFit">Zoom to fit</button>'+
+    '<button class="btn warn" id="btnClearAll">Clear network</button></div>');
+  $('pProject').innerHTML=html;
+  $('applyAllDn').onclick=()=>{Object.values(M.edges).forEach(e=>e.dn=M.def.dn);snapshot();run();toast('Diameter applied to every pipe');};
+  $('applyAllSer').onclick=()=>{Object.values(M.edges).forEach(e=>e.series=M.def.series);snapshot();run();toast('Series applied to every pipe');};
+  $('btnFit').onclick=fit;
+  $('btnClearAll').onclick=()=>{if(confirm('Delete the whole sketch?')){M.nodes={};M.edges={};snapshot();run();fit();}};
+  document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{
+    const p=b.dataset.toggle;setPath(M,p,!getPath(M,p));render();syncProject();syncRail();});
+  document.querySelectorAll('#cSoil [data-bind]').forEach(el=>
+    el.addEventListener('change',()=>{if(/soil\.(g|K0|mu)/.test(el.dataset.bind)){M.soil.preset='custom';M._soilTouch=true;}}));
+  document.querySelector('[data-bind="design.cycles"]').addEventListener('change',()=>{M._dutyTouch=true;});
+  syncProject();
+}
+function syncProject(){
+  document.querySelectorAll('#pProject [data-bind]').forEach(el=>{
+    if(el===document.activeElement)return;
+    const v=getPath(M,el.dataset.bind);
+    if(el.type==='checkbox')el.checked=!!v; else el.value=v;
+  });
+  document.querySelectorAll('#pProject [data-set]').forEach(b=>{
+    const[p,v]=b.dataset.set.split('|');
+    let cur=getPath(M,p);
+    b.classList.toggle('on',String(cur)===v);
+  });
+  document.querySelectorAll('[data-toggle]').forEach(b=>
+    b.classList.toggle('acc',!!getPath(M,b.dataset.toggle)));
+  if(!R)return;
+  const A=R.A,th=R.th;
+  $('opsNote').innerHTML='Reference temperature <b>'+fmt(th.Tref,0)+' \u00b0C</b>. '+
+    'Fully restrained stress <b>'+fmt(th.sigC,0)+' MPa</b> compressive at Tmax and <b>'+
+    fmt(th.sigT,0)+' MPa</b> tensile at Tmin. Full range <b>'+fmt(th.dSig,0)+' MPa</b> \u2014 '+
+    'pre-stressing shifts the mean but does not reduce this range, so bends and branches see it either way.';
+  const p=pipeByDn(M.def.dn);
+  $('pipeNote').innerHTML='DN'+M.def.dn+' \u00b7 '+p.d+'\u00d7'+p.t+' mm \u00b7 As <b>'+p.As+
+    ' mm\u00b2</b> \u00b7 casing <b>\u00f8'+p.Dc[M.def.series-1]+' mm</b> \u00b7 friction at '+
+    fmt(M.soil.cover,2)+' m cover <b>'+fmt(friction(p,M.def.series,M.soil,M.soil.cover),2)+
+    ' kN/m</b> \u00b7 self weight '+fmt(selfWeight(p,M.def.series),2)+' kN/m.';
+  $('clsNote').innerHTML='<b>Class '+A.cls+'</b> \u2014 '+CLASSES[A.cls].name.split('\u2014')[1]+
+    '. '+CLASSES[A.cls].hint+' Fatigue partial factor '+fmt(A.gFat,2)+'.';
+  $('allowNote').innerHTML='Adopted \u03c3all <b>'+fmt(A.sigAll,0)+' MPa</b> \u00b7 C1 local stability limit <b>'+
+    fmt(A.c1,0)+' MPa</b> \u00b7 fatigue allowable stress range <b>'+fmt(A.dsFat,0)+' MPa</b> at N = '+
+    A.N+'. 190 MPa is the level manufacturers have used for decades and gives about 1.1 against yield; '+
+    'EN 13941 permits the full C1 curve provided global stability is demonstrated.';
+}
+
+/* ---- ELEMENT PANE ----------------------------------------------------- */
+function buildElementPane(){
+  const el=$('pElement');
+  if(!sel.kind||sel.kind==='find'){
+    el.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M3 20h6l4-8h8"/>'+
+      '<circle cx="3" cy="20" r="1.6"/><circle cx="21" cy="12" r="1.6"/></svg>'+
+      'Nothing selected.<br><br>Draw with <b>R</b>, branch with <b>B</b>, select with <b>V</b>.<br>'+
+      'Click a pipe or a node to edit it and see its results.</div>';return;
+  }
+  if(sel.kind==='node')el.innerHTML=nodePane(M.nodes[sel.id]);
+  else el.innerHTML=edgePane(M.edges[sel.id]);
+  const del=$('elDel'); if(del)del.onclick=()=>{
+    if(sel.kind==='node')delNode(sel.id);else delEdge(sel.id);
+    select(null,null);snapshot();run();};
+  const sp=$('elSplit'); if(sp)sp.onclick=()=>{const n=splitEdge(M.edges[sel.id],0.5);
+    snapshot();run();select('node',n);};
+  syncElement();
+}
+function syncElement(){
+  document.querySelectorAll('#pElement [data-bind]').forEach(el=>{
+    if(el===document.activeElement)return;
+    const v=getPath(M,el.dataset.bind);
+    el.value=(v===null||v===undefined)?'':v;
+  });
+  document.querySelectorAll('#pElement [data-set]').forEach(b=>{
+    const[p,v]=b.dataset.set.split('|');
+    b.classList.toggle('on',String(getPath(M,p))===v);
+  });
+}
+function nodePane(n){
+  if(!n)return '';
+  const r=R?R.NR[n.id]:null, role=r?r.role:'?';
+  const b='nodes.'+n.id;
+  const names={free:'Free end',anchor:'Fixed point',bend:'Bend',tee:'Branch / tee',
+    valve:'Valve',ecomp:'E-comp',loop:'U-loop',weld:'Weld',reducer:'Reducer',orphan:'Isolated'};
+  let out=cardF('nA','Node \u2014 '+(names[role]||role),'deg '+degree(n.id),
+    rowF('Type','automatic unless overridden',selF(b+'.type',[['auto','Automatic'],
+      ['free','Free end'],['anchor','Fixed point / anchor'],['ecomp','E-comp'],
+      ['loop','U-loop'],['valve','Valve']]),true)+
+    rowF('Label','shown on the sketch','<input class="fld" type="text" data-bind="'+b+'.label">')+
+    rowF('East','m',numF(b+'.x',0.5))+rowF('North','m',numF(b+'.y',0.5))+
+    '<div class="btn2" style="margin-top:8px"><button class="btn warn" id="elDel">Delete node</button>'+
+    '<button class="btn" onclick="zoomTo(\''+n.id+'\')">Centre view</button></div>');
+  if(r){
+    let res=kv('Axial stress \u03c3','<span>'+fmt(r.sig,0)+' MPa</span>',cls(r.sig/(R.A.sigAll||1)))+
+      kv('Stress range \u0394\u03c3',fmt(r.ds,0)+' MPa')+
+      kv('Expansion point',r.ep?(r.fixed?'fixed':'yes \u2014 free'):'no (passes through)');
+    if(r.dev!==undefined)res+=kv('Direction change',fmt(r.dev,1)+'\u00b0');
+    if(r.dR>0.5)res+=kv('Resultant movement','<span>'+fmt(r.dR,0)+' mm</span>',r.dR>84?'high':'ok');
+    r.parts.forEach((p,i)=>res+=kv('&nbsp;&nbsp;from '+p.sec,fmt(p.d,0)+' mm'));
+    if(r.anchorF)res+=kv('Unbalanced anchor force','<span>'+fmt(r.anchorF,0)+' kN</span>','watch');
+    if(r.teeMove!==undefined)res+=kv('Main pipe movement here',fmt(r.teeMove,0)+' mm');
+    out+=cardF('nB','Results','',res);
+    if(r.pad){
+      const L=r.pad.lengths;
+      out+=cardF('nC','Foam pad schedule','\u03c3PUR \u2264 0.15 MPa',
+        kv('Resultant movement',fmt(r.pad.dR,0)+' mm')+
+        kv('Layers required','<span>'+r.pad.layers+' \u00d7 40 mm</span>',
+           r.pad.layers>3?'bad':'ok')+
+        kv('Pad thickness',r.pad.t+' mm')+
+        kv('Zone length F',fmt(r.pad.F,1)+' m')+
+        L.map((v,i)=>kv('Layer '+(i+1)+' length',(Math.ceil(v*2)/2).toFixed(1)+' m')).join('')+
+        r.pad.legs.filter(g=>g.F>0.05).map(g=>kv('&nbsp;&nbsp;DN'+g.dn+
+          ' leg ('+fmt(g.d,0)+' mm across) \u2014 F / clear',
+          '<span>'+fmt(g.F,1)+' / '+fmt(g.avail,1)+' m</span>',
+          g.F>g.avail+0.05?'bad':(g.F>0.85*g.avail?'watch':'ok'))).join('')+
+        (r.pad.zNeed?kv('Offset needs / has','<span>'+fmt(r.pad.zNeed,1)+' / '+
+          fmt(r.pad.zHave,1)+' m</span>',r.pad.zHave<r.pad.zNeed?'bad':'ok'):'')+
+        kv('Excavation width','<span>'+fmt(r.pad.trench,2)+' m</span>',
+          (M.soil.trenchMax>0&&r.pad.trench>M.soil.trenchMax)?'bad':'ok')+
+        '<div class="note">Pads go on the <b>outside</b> of the bend over the full F-length, '+
+        'stepped F / \u00bdF / \u00bcF. One 40 mm layer on the inside is normally enough because '+
+        'friction stops the bend pulling fully back. Round each length up to the nearest half metre.</div>');
+    }
+    const tee=R.teeReport.find(t=>t.n===n.id);
+    if(tee){
+      const curType=n.teeType||'';
+      const defName=SCFS[M.design.teeType].name;
+      let sel='<select class="fld" data-bind="nodes.'+n.id+'.teeType" style="text-align:left">'+
+        '<option value="">Project default \u2014 '+defName+'</option>'+
+        Object.keys(SCFS).map(k=>'<option value="'+k+'"'+(k===curType?' selected':'')+'>'+
+          SCFS[k].name+'</option>').join('')+'</select>';
+      let t='<div class="row"><label>Branch detail<small>overrides the project default at this tee only</small></label></div>'+
+        sel+
+        '<div class="ubar" style="margin-top:10px;margin-bottom:0"></div>'+
+        kv('Run stress range','<span>'+fmt(tee.dsRun,0)+' MPa</span>',cls(tee.util))+
+        kv('Fatigue allowable',fmt(R.A.dsFat,0)+' MPa')+
+        kv('Utilisation','<span>'+fmt(100*tee.util,0)+' %</span>',cls(tee.util))+
+        '<div class="ubar"><i style="width:'+Math.min(100,tee.util*100)+
+        '%;background:'+ramp(tee.util)+'"></i></div>';
+      tee.br.forEach(br=>{
+        t+='<div style="margin-top:9px;padding-top:7px;border-top:1px solid var(--line)">'+
+        '<div style="font-size:11px;color:var(--dim);margin-bottom:4px">DN'+br.dn+' branch</div>'+
+        kv('Lateral movement imposed',fmt(br.lat,0)+' mm')+
+        kv('Free length available',fmt(br.Lb,1)+' m')+
+        kv('Free length required','<span>'+fmt(br.Lreq,1)+' m</span>',br.Lb<br.Lreq?'bad':'ok')+
+        kv('Bending stress range',fmt(br.sigBend,0)+' MPa')+
+        kv('Branch utilisation','<span>'+fmt(100*br.util,0)+' %</span>',cls(br.util))+
+        kv('Pad length each side',fmt(br.padL,1)+' m, '+br.layers+' layer(s)')+'</div>';
+      });
+      out+=cardF('nD','Branch check',tee.scf,t);
+    }
+  }
+  return out;
+}
+function edgePane(e){
+  if(!e)return '';
+  const b='edges.'+e.id, r=R?R.ER[e.id]:null, p=edgeProps(e);
+  const dnOpts=PIPES.map(q=>[q.dn,'DN '+q.dn+'  ('+q.d+' \u00d7 '+q.t+')']);
+  let out=cardF('eA','Pipe length','L = '+fmt(edgeLen(e),1)+' m',
+    rowF('Nominal size','',selF(b+'.dn',dnOpts),true)+
+    rowF('Insulation series','',
+      '<div class="seg"><button data-set="'+b+'.series|1">1</button>'+
+      '<button data-set="'+b+'.series|2">2</button>'+
+      '<button data-set="'+b+'.series|3">3</button></div>',true)+
+    rowF('Cover override','m \u2014 blank uses project value',numF(b+'.cover',0.1,0.2,6))+
+    rowF('Surround override','',selF(b+'.soil',[['','Project default']].concat(
+      Object.keys(SOILS).map(k=>[k,SOILS[k].name]))),true)+
+    '<div class="btn2" style="margin-top:8px"><button class="btn" id="elSplit">Insert node at midpoint</button>'+
+    '<button class="btn warn" id="elDel">Delete pipe</button></div>');
+  out+=cardF('eB','Geometry & soil','',
+    kv('Steel pipe',p.d+' \u00d7 '+p.t+' mm')+kv('Cross-section As',p.As+' mm\u00b2')+
+    kv('Casing \u00f8',p.Dc+' mm')+kv('Cover H',fmt(p.cover,2)+' m')+
+    kv('Depth to centreline Z',fmt(p.cover+p.Dc/2000,2)+' m')+
+    kv('Self weight (filled)',fmt(selfWeight(p.p,p.series),2)+' kN/m')+
+    kv('Friction force F','<b>'+fmt(p.F,2)+' kN/m</b>'));
+  if(r&&R){
+    const S=R.sections.find(s=>s.id===r.sec);
+    out+=cardF('eC','Section results',r.sec||'',
+      kv('Axial stress at ends',fmt(r.sigA,0)+' \u2192 '+fmt(r.sigB,0)+' MPa')+
+      kv('Peak in this length','<span>'+fmt(r.sigMax,0)+' MPa</span>',cls(r.util))+
+      kv('Utilisation vs \u03c3all','<span>'+fmt(100*r.util,0)+' %</span>',cls(r.util))+
+      '<div class="ubar"><i style="width:'+Math.min(100,r.util*100)+'%;background:'+
+      ramp(r.util)+'"></i></div>'+
+      (S?kv('Section length',fmt(S.L,1)+' m')+
+        kv('End conditions',S.e0+' \u2013 '+S.e1)+
+        kv('Friction length LF',fmt(S.LF,1)+' m')+
+        kv('Locked (no movement)',fmt(S.lock,1)+' m')+
+        kv('Max spacing 2\u00b7L(all)',fmt(2*S.Lall,0)+' m')+
+        kv('End movements',fmt(S.d0,0)+' / '+fmt(S.d1,0)+' mm'):''));
+    if(r.branchLat!==undefined)
+      out+=cardF('eD','As a branch','',
+        kv('Lateral movement at tee',fmt(r.branchLat,0)+' mm')+
+        kv('Free length required',fmt(r.branchLreq,1)+' m'));
+  }
+  return out;
+}
+function zoomTo(nid){const n=M.nodes[nid];if(!n)return;
+  V.tx=V.w/2-n.x*V.sc;V.ty=V.h/2-n.y*V.sc;render();}
+
+/* ---- FINDINGS PANE ---------------------------------------------------- */
+function buildFindingsPane(){
+  const el=$('pFindings');
+  if(!R){el.innerHTML='';return;}
+  const t=R.tally;
+  const bar='<div class="findbar"><div class="tally">'+
+    ['critical','high','watch','info'].map(s=>'<b><i style="background:'+SEVC[s]+
+      '"></i>'+t[s]+'</b>').join('')+'</div>'+
+    '<span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim2)">'+
+    R.findings.length+' items</span></div>';
+  if(!R.findings.length){el.innerHTML=bar+'<div class="empty">No findings.</div>';return;}
+  el.innerHTML=bar+R.findings.map(f=>
+    '<div class="find'+(sel.kind==='find'&&sel.id===f.id?' sel':'')+'" data-find="'+f.id+'">'+
+    '<div class="fh"><span class="sev" style="background:'+SEVC[f.sev]+'"></span>'+
+    '<span class="ft">'+f.title+'</span><span class="fl">'+f.code+'</span></div>'+
+    '<div class="fd">'+f.detail+'</div>'+
+    (f.fix?'<div class="fx">'+f.fix+'</div>':'')+
+    (f.ref?'<div class="fd" style="color:var(--dim2);font-size:10px;margin-top:4px">'+f.ref+'</div>':'')+
+    '</div>').join('');
+  el.querySelectorAll('[data-find]').forEach(d=>d.onclick=()=>{
+    const f=R.findings.find(x=>x.id===d.dataset.find);
+    sel={kind:'find',id:f.id};
+    buildFindingsPane();
+    if(f.loc.k==='node')zoomTo(f.loc.id);
+    else if(f.loc.k==='edge'){const e=M.edges[f.loc.id];
+      if(e){const A=M.nodes[e.a],B=M.nodes[e.b];
+        V.tx=V.w/2-(A.x+B.x)/2*V.sc;V.ty=V.h/2-(A.y+B.y)/2*V.sc;}}
+    else if(f.loc.k==='section'){const S=R.sections.find(s=>s.id===f.loc.id);
+      if(S){const e=S.edges[Math.floor(S.edges.length/2)],A=M.nodes[e.a],B=M.nodes[e.b];
+        V.tx=V.w/2-(A.x+B.x)/2*V.sc;V.ty=V.h/2-(A.y+B.y)/2*V.sc;}}
+    render();
+  });
+  $('findCount').innerHTML=(t.critical+t.high)?'<span style="color:'+
+    (t.critical?SEVC.critical:SEVC.high)+'">\u25cf</span>':'';
+}
+
+/* ---- RESULTS PANE ----------------------------------------------------- */
+function buildResultsPane(){
+  const el=$('pResults');
+  if(!R||!R.sections.length){el.innerHTML='<div class="empty">Draw a route to see results.</div>';return;}
+  const s=R.summary,A=R.A,th=R.th;
+  let out=cardF('rA','Summary','class '+A.cls,
+    kv('Total route length',fmt(s.totLen,0)+' m')+
+    kv('Expansion sections',s.nSec)+
+    kv('Peak axial stress','<span>'+fmt(s.maxSig,0)+' MPa</span>',cls(s.maxSig/A.sigAll))+
+    kv('Adopted \u03c3all',fmt(A.sigAll,0)+' MPa')+
+    kv('C1 local stability limit',fmt(A.c1,0)+' MPa')+
+    kv('Fatigue allowable \u0394\u03c3',fmt(A.dsFat,0)+' MPa at N = '+A.N)+
+    kv('Applied stress range',fmt(th.dSig,0)+' MPa')+
+    kv('Largest movement',fmt(s.maxMove,0)+' mm')+
+    '<div class="ubar"><i style="width:'+Math.min(100,s.maxUtil*100)+'%;background:'+
+    ramp(s.maxUtil)+'"></i></div>'+
+    '<div style="text-align:right;font-family:var(--mono);font-size:10px;color:var(--dim2)">peak utilisation '+
+    fmt(100*s.maxUtil,0)+'%</div>');
+
+  out+=cardF('rB','Expansion sections','',
+    '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Sec</th><th>L</th><th>DN</th>'+
+    '<th>F</th><th>LF</th><th>\u03c3</th><th>U%</th><th>\u03941</th><th>\u03942</th></tr></thead><tbody>'+
+    R.sections.map(S=>{
+      const dn=[...new Set(S.edges.map(e=>e.dn))].join('/');
+      return '<tr data-sec="'+S.id+'"><td>'+S.id+'</td><td>'+fmt(S.L,0)+'</td><td>'+dn+'</td>'+
+        '<td>'+fmt(S.f,2)+'</td><td>'+fmt(S.LF,0)+'</td>'+
+        '<td class="'+cls(S.util)+'">'+fmt(S.sig,0)+'</td>'+
+        '<td class="'+cls(S.util)+'">'+fmt(100*S.util,0)+'</td>'+
+        '<td>'+fmt(S.d0,0)+'</td><td>'+fmt(S.d1,0)+'</td></tr>';}).join('')+
+    '</tbody></table></div><div class="note">L, LF in m \u00b7 F in kN/m \u00b7 \u03c3 in MPa \u00b7 '+
+    '\u0394 movements in mm.</div>');
+
+  if(R.bendReport.length)out+=cardF('rC','Expansion points & pads','',
+    '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Node</th><th>Angle</th>'+
+    '<th>\u0394R</th><th>Lay</th><th>t</th><th>F</th><th>Clear</th><th>Trench</th>'+
+    '</tr></thead><tbody>'+
+    R.bendReport.map(b=>'<tr data-node="'+b.n+'"><td>'+(M.nodes[b.n].label||b.n.slice(1,5))+
+      '</td><td>'+fmt(b.dev,0)+'\u00b0</td><td>'+fmt(b.dR,0)+'</td>'+
+      '<td class="'+(b.layers>3?'bad':'ok')+'">'+b.layers+'</td><td>'+(b.layers*40)+
+      '</td><td>'+fmt(b.F,1)+'</td>'+
+      '<td class="'+(b.fit?'ok':'bad')+'">'+fmt(b.avail,1)+'</td>'+
+      '<td>'+fmt(b.trench,2)+'</td></tr>').join('')+
+    '</tbody></table></div><div class="note">\u0394R in mm \u00b7 pad thickness t in mm \u00b7 '+
+    'zone F and clear straight length in m \u00b7 trench width in m. A red clear length means the '+
+    'pad zone runs past the next bend, tee or fitting.</div>');
+
+  if(R.branchReport.length)out+=cardF('rD','Branches','',
+    '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Tee</th><th>DN</th>'+
+    '<th>\u0394lat</th><th>L avail</th><th>L req</th><th>U%</th></tr></thead><tbody>'+
+    R.branchReport.map(b=>'<tr data-node="'+b.n+'"><td>'+(M.nodes[b.n].label||b.n.slice(1,5))+
+      '</td><td>'+b.dn+'</td><td>'+fmt(b.lat,0)+'</td><td>'+fmt(b.Lb,1)+'</td>'+
+      '<td class="'+(b.Lb<b.Lreq?'bad':'ok')+'">'+fmt(b.Lreq,1)+'</td>'+
+      '<td class="'+cls(b.util)+'">'+fmt(100*b.util,0)+'</td></tr>').join('')+
+    '</tbody></table></div><div class="note">Lateral movement in mm \u00b7 lengths in m. '+
+    '"L req" is the free branch length needed before the first bend or fixed point.</div>');
+
+  out+=cardF('rE','Export','',
+    '<div class="btn2"><button class="btn" id="expSec">Sections CSV</button>'+
+    '<button class="btn" id="expFind">Findings CSV</button></div>'+
+    '<button class="btn acc" id="expRep" style="margin-top:6px">Open calculation report</button>');
+  el.innerHTML=out;
+  el.querySelectorAll('[data-sec]').forEach(tr=>tr.onclick=()=>{
+    const S=R.sections.find(x=>x.id===tr.dataset.sec);
+    if(S)select('edge',S.edges[0].id);});
+  el.querySelectorAll('[data-node]').forEach(tr=>tr.onclick=()=>select('node',tr.dataset.node));
+  $('expSec').onclick=()=>csv('sections');
+  $('expFind').onclick=()=>csv('findings');
+  $('expRep').onclick=report;
+}
+
+/* ---- STATUS + LEGEND -------------------------------------------------- */
+function buildStatus(){
+  if(!R){$('status').innerHTML='';return;}
+  const s=R.summary,t=R.tally;
+  const worst=t.critical?'critical':t.high?'high':t.watch?'watch':'info';
+  $('status').innerHTML=
+    '<span><b>'+fmt(s.totLen,0)+' m</b> route</span>'+
+    '<span><b>'+s.nEdges+'</b> lengths \u00b7 <b>'+s.nSec+'</b> sections</span>'+
+    '<span>class <b>'+s.cls+'</b> \u00b7 \u03c3all <b>'+fmt(s.sigAll,0)+'</b> MPa \u00b7 N <b>'+s.N+'</b></span>'+
+    '<span>peak <b>'+fmt(s.maxSig,0)+'</b> MPa \u00b7 <b>'+fmt(100*s.maxUtil,0)+'%</b></span>'+
+    '<span class="sp"><span class="dot" style="background:'+SEVC[worst]+'"></span>'+
+    t.critical+' critical \u00b7 '+t.high+' high \u00b7 '+t.watch+' watch</span>';
+}
+function buildLegend(){
+  const A=R?R.A:{sigAll:190};
+  const stops=[0,.25,.5,.65,.8,.9,1,1.1];
+  $('legend').innerHTML='<h6>Axial stress \u00f7 \u03c3all</h6>'+
+    '<div class="ramp">'+stops.map(u=>'<i style="background:'+ramp(u)+'"></i>').join('')+'</div>'+
+    '<div class="lr"><span>0</span><span>'+fmt(A.sigAll/2,0)+'</span><span>'+
+    fmt(A.sigAll,0)+' MPa</span></div>'+
+    '<div class="lkeys">'+
+    '<span><b style="background:#3f8a2e"></b>expansion pt</span>'+
+    '<span><b style="background:#12140a"></b>anchor</span>'+
+    '<span><b style="background:#c4d600"></b>branch / tee</span>'+
+    '<span><b style="background:#8a9600"></b>foam pads</span></div>';
+}
+
+/* ---- MAIN LOOP -------------------------------------------------------- */
+function run(){
+  try{R=analyse();}catch(err){console.error(err);R=null;toast('Analysis error: '+err.message);}
+  render();buildElementPane();buildFindingsPane();buildResultsPane();
+  buildStatus();buildLegend();syncProject();
+}
+
+/* ---- SAVE / LOAD / CSV ------------------------------------------------ */
+function download(name,text,mime){
+  const b=new Blob([text],{type:mime||'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+}
+function saveFile(){
+  M.meta.name=$('projName').value;
+  const o={app:'thermoline',version:1,meta:M.meta,ops:M.ops,soil:M.soil,design:M.design,
+    def:M.def,view:M.view,nodes:M.nodes,edges:M.edges};
+  download((M.meta.name||'network').replace(/[^\w-]+/g,'_')+'.json',
+    JSON.stringify(o,null,1),'application/json');
+  toast('Saved');
+}
+$('btnNew').onclick=()=>{
+  if(Object.keys(M.edges).length>0&&!confirm('Start a new project? Unsaved changes will be lost.'))return;
+  M=blankModel(); M.meta.name='Untitled network'; $('projName').value=M.meta.name;
+  _hudBuilt=false;
+  buildProjectPane(); snapshot(); run(); fit();
+  toast('New project started');
+};
+$('btnSave').onclick=saveFile;
+$('btnOpen').onclick=()=>$('fileIn').click();
+$('fileIn').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{
+    const o=JSON.parse(rd.result);
+    M=Object.assign(blankModel(),o);M.z={p:[],i:-1};
+    $('projName').value=M.meta.name||'Network';
+    buildProjectPane();snapshot();run();fit();toast('Opened '+f.name);
+  }catch(e){toast('Could not read that file');}};
+  rd.readAsText(f); ev.target.value='';
+};
+$('projName').onchange=e=>{M.meta.name=e.target.value;};
+function csv(kind){
+  let rows=[];
+  if(kind==='sections'){
+    rows.push(['Section','Length_m','DN','Series','F_kN_m','As_mm2','LF_m','Lall_m',
+      'Sigma_MPa','Utilisation','Locked_m','Move1_mm','Move2_mm','End1','End2']);
+    R.sections.forEach(S=>rows.push([S.id,S.L.toFixed(1),
+      [...new Set(S.edges.map(e=>e.dn))].join('/'),
+      [...new Set(S.edges.map(e=>e.series))].join('/'),
+      S.f.toFixed(2),S.As.toFixed(0),S.LF.toFixed(1),S.Lall.toFixed(1),
+      S.sig.toFixed(0),(S.util*100).toFixed(0),S.lock.toFixed(1),
+      S.d0.toFixed(0),S.d1.toFixed(0),S.e0,S.e1]));
+  } else {
+    rows.push(['ID','Severity','Code','Title','Detail','Recommendation','Basis']);
+    R.findings.forEach(f=>rows.push([f.id,f.sev,f.code,f.title,f.detail,f.fix,f.ref]));
+  }
+  const out=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  download((M.meta.name||'network')+'-'+kind+'.csv',out,'text/csv');
+}
+
+/* ---- MODALS ----------------------------------------------------------- */
+function modal(title,body,footer){
+  $('modal').innerHTML='<header><h3>'+title+'</h3><button class="x" onclick="closeModal()">\u00d7</button></header>'+
+    '<div class="mb">'+body+'</div>'+(footer?'<footer>'+footer+'</footer>':'');
+  $('veil').classList.add('on');
+}
+function closeModal(){$('veil').classList.remove('on');}
+$('veil').onclick=e=>{if(e.target===$('veil'))closeModal();};
+
+
+const SEVDESC={critical:'Governing check is exceeded outright \u2014 the layout will not work as drawn.',
+  high:'A limit is exceeded; a design change is normally needed here.',
+  watch:'Close to a limit, or a simplification the tool has made is worth checking by hand.',
+  info:'For information \u2014 no limit is exceeded, but there is something to note or size.'};
+const CODEDOCS=[
+ ['MOD-0','info','Nothing has been drawn yet.'],
+ ['DIR-1','watch/info','A direction change under the flexible-bend threshold. Checked against the mitre-angle table or flagged for an elastic curve.'],
+ ['EXP-0','info','A flexible bend, loop or E-comp needs foam pads; layers and zone length are given.'],
+ ['EXP-1','high','Movement at a flexible bend needs more than 3 pad layers (84 mm) \u2014 beyond normal manufacturer guidance.'],
+ ['PAD-1','high','The sized pad zone F runs past the next bend, tee, fitting or pipe end on that leg.'],
+ ['PAD-2','watch','The pad zone fills more than 85% of the available leg \u2014 little margin on site.'],
+ ['PAD-3','high','A Z-offset or loop leg is shorter than the manufacturer rule Z \u2265 0.45(F\u2081+F\u2082) asks for.'],
+ ['PAD-4','watch','Local excavation width (casing + pads + working space) exceeds the stated trench maximum.'],
+ ['PAD-5','watch','Pad thickness exceeds the stated clear gap to the adjacent casing.'],
+ ['LOOP-1','watch','Two or more bends are close enough to act as one expansion element; pads are sized approximately \u2014 confirm against supplier tables.'],
+ ['ANC-1','info','Reports the unbalanced force a fixed point must carry.'],
+ ['ANC-2','watch','Axial stress at an anchor exceeds the adopted anchor stress-difference limit.'],
+ ['END-1','watch','A free end moves more than about 150 mm on first heat-up.'],
+ ['TEE-1','high','Run-pipe stress range at a branch exceeds the fatigue allowable \u2014 reinforcement needed.'],
+ ['TEE-2','watch','Run-pipe stress range at a branch is within 15% of the fatigue allowable.'],
+ ['TEE-3','info','Reports how much the main pipe moves at this branch.'],
+ ['BR-1','critical','The branch has less free length than the guided-cantilever calculation needs to absorb the main pipe movement.'],
+ ['BR-2','watch','Branch free length is within 30% of what is needed \u2014 marginal.'],
+ ['BR-3','high','Combined axial and bending stress range in the branch exceeds the fatigue allowable.'],
+ ['BR-4','info','Reports the pad layers and length needed along a branch.'],
+ ['STR-1','high','Axial stress in a section exceeds the adopted design level \u03c3all.'],
+ ['STR-2','info','Reports the fully restrained (locked) length in the middle of a long section.'],
+ ['SEC-1','watch','A section mixes more than one DN; properties are length-weighted and the reducer should be checked separately.'],
+ ['COV-1','watch','Soil cover is below the recommended minimum.'],
+ ['COV-2','watch','Soil cover exceeds the manufacturer maximum for this DN and series.'],
+ ['C1-1','critical','Axial stress exceeds the EN 13941 limit-state C1 local stability limit \u2014 risk of pipe wall buckling.'],
+ ['PRE-0','info','Confirms the assumed pre-stress reference temperature and the resulting compressive/tensile stresses.'],
+ ['PRE-1','watch','The set pre-stress temperature is too low to close the E-comps at the adopted stress level.'],
+ ['TEN-1','watch','Tensile stress on cooling exceeds the adopted design level \u2014 often the governing case for welds.'],
+ ['FAT-2','high','Stress range at a bend (with its SCF) exceeds the fatigue allowable for the set number of cycles.']
+];
+function guideBody(tab){
+  if(tab==='use')return `
+<h5>Workflow</h5>
+<p>Set the operating conditions, soil and design class on the <b>Project</b> tab first \u2014 they
+drive every calculation. Sketch the route, select anything to see its detail on the
+<b>Element</b> tab, then work through <b>Findings</b> in order: critical and high items are the
+ones that change the layout; watch items are worth a look; info items are quantities to record.
+The <b>Results</b> tab gives the section, bend and branch tables for a spreadsheet or the printable
+report. Load a template first if you want to explore before drawing your own.</p>
+
+<h5>Drawing tools</h5>
+<div class="kgrid">
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M4 3l7 17 2.5-6.5L20 11z"/></svg><span><kbd>V</kbd> Select \u2014 click to pick, drag to move a node</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M3 20h6l4-8h8"/></svg><span><kbd>R</kbd> Route \u2014 click to place points, <kbd>Enter</kbd>/double-click to finish</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M3 6h18M12 6v14"/></svg><span><kbd>B</kbd> Branch \u2014 click an existing pipe to tee off it</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16L16 6l4 4L10 20z"/></svg><span><kbd>X</kbd> Erase \u2014 click a node or pipe to delete it</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/></svg><span><kbd>A</kbd> Anchor \u2014 stamp a fixed point on a node</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg><span><kbd>F</kbd> Free end</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M6 20V11a6 6 0 0112 0v9"/></svg><span><kbd>U</kbd> Loop marker \u2014 flag an existing node as an expansion element (no geometry)</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14M8 12h8"/></svg><span><kbd>E</kbd> E-comp compensator</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M5 6l14 12M5 18L19 6"/></svg><span><kbd>W</kbd> Valve</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M9 15l6-6"/></svg><span>Clear marker \u2014 back to automatic role</span></div>
+</div>
+
+<h5>Inserting a U-loop or Z-offset</h5>
+<p style="margin-bottom:10px">These build real, editable pipe geometry \u2014 an actual detour, not just a flag \u2014 so the
+pad-fit and offset-length checks apply to it directly. Use either tool two ways:</p>
+<div class="kgrid">
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M5 20V10a5 5 0 0110 0v10"/><path d="M3 20h4M13 20h4"/></svg><span><kbd>O</kbd> Insert U-loop \u2014 click an existing pipe to break it in and splice the loop there</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M4 7h7v10h9"/></svg><span><kbd>Z</kbd> Insert Z-offset \u2014 same, as a single sideways jog instead of a loop</span></div>
+<div class="kitem"><span>&nbsp;</span><span>Mid-route: press <kbd>O</kbd> or <kbd>Z</kbd> while actively drawing to append it at the current point, then carry on drawing</span></div>
+<div class="kitem"><kbd>Shift</kbd><span>held on the click (or the key press) puts the detour on the other side</span></div>
+</div>
+<p style="margin-top:10px;color:var(--dim2);font-size:11px">Both tools stay armed after use, so you can click several pipes in a row. Default
+dimensions scale with pipe size and are a starting point \u2014 drag the new nodes, or edit their
+coordinates on the Element tab, to resize.</p>
+
+<h5>While drawing a route</h5>
+<div class="kgrid">
+<div class="kitem"><span>&nbsp;</span><span>Length and angle to the cursor show live next to the pointer as you move it</span></div>
+<div class="kitem"><kbd>Shift</kbd><span>lock the next point to 0/45/90\u00b0</span></div>
+<div class="kitem"><kbd>Alt</kbd><span>disable angle and grid snapping</span></div>
+<div class="kitem"><kbd>0\u20139</kbd><span>type an exact length for the next segment, then <kbd>Enter</kbd></span></div>
+<div class="kitem"><kbd>Esc</kbd><span>stop the current route without deleting it</span></div>
+</div>
+
+
+<h5>View and navigation</h5>
+<div class="kgrid">
+<div class="kitem"><kbd>scroll</kbd><span>zoom, centred on the pointer</span></div>
+<div class="kitem"><kbd>middle-drag</kbd><span>pan the canvas</span></div>
+<div class="kitem"><kbd>Home</kbd><span>zoom to fit the whole network</span></div>
+<div class="kitem"><kbd>L</kbd><span>toggle length/DN labels on the pipes</span></div>
+<div class="kitem"><kbd>Ctrl/\u2318 Z</kbd><span>undo &nbsp;\u00b7&nbsp; <kbd>Ctrl/\u2318 Shift Z</kbd> redo</span></div>
+<div class="kitem"><kbd>Delete</kbd><span>remove the current selection</span></div>
+</div>
+
+<h5>Node markers on the sketch</h5>
+<div class="kgrid">
+<div class="kitem"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" fill="#12140a" stroke="#12140a"/></svg><span>Black square \u2014 fixed point / anchor</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z" fill="#c4d600" stroke="#12140a"/></svg><span>Lime diamond \u2014 branch / tee. Select one to set its detail (plain, reinforced, forged, parallel) independently of the project default</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="#3f8a2e" stroke="#3f8a2e"/></svg><span>Green ring \u2014 relieving bend or expansion point</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" stroke="#8a8a80"/></svg><span>Grey ring \u2014 free end</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><path d="M4 4l16 16M4 20L20 4" stroke="#2a2a25"/></svg><span>Cross \u2014 valve</span></div>
+<div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="#5a5a52"/></svg><span>Small dot \u2014 weld / pass-through, no expansion effect</span></div>
+</div>
+<p style="margin-top:14px;color:var(--dim2);font-size:11px">The <b>Method &amp; limits</b> button covers what is actually calculated, the formulas used,
+and what the tool does not attempt \u2014 worth reading before you rely on a result.</p>`;
+
+  return `
+<p style="margin-bottom:14px">Every finding carries a severity and a code. Click any finding in the
+list to jump to it on the sketch.</p>
+<div class="kgrid" style="margin-bottom:16px">
+${Object.entries(SEVDESC).map(([k,v])=>'<div class="kitem"><span class="sv" style="background:'+
+  SEVC[k]+';width:9px;height:9px;border-radius:50%;margin-top:3px"></span><span><b style="color:var(--text);text-transform:capitalize">'+
+  k+'</b> \u2014 '+v+'</span></div>').join('')}
+</div>
+<table class="codetbl">${CODEDOCS.map(([c,sev,d])=>{
+  const sv=sev.split('/')[0];
+  return '<tr><td><span class="sv" style="background:'+(SEVC[sv]||SEVC.info)+
+    '"></span>'+c+'</td><td>'+d+'</td></tr>';}).join('')}
+</table>`;
+}
+function openGuide(tab){
+  tab=tab||'use';
+  modal('Guide','<div class="mtabs">'+
+    '<button data-mt="use" class="'+(tab==='use'?'on':'')+'">Using the tool</button>'+
+    '<button data-mt="codes" class="'+(tab==='codes'?'on':'')+'">Finding codes</button></div>'+
+    '<div id="gbody">'+guideBody(tab)+'</div>',
+    '<button class="btn" onclick="closeModal()">Close</button>');
+  document.querySelectorAll('[data-mt]').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('[data-mt]').forEach(x=>x.classList.toggle('on',x===b));
+    $('gbody').innerHTML=guideBody(b.dataset.mt);
+  });
+}
+$('btnGuide').onclick=()=>openGuide('use');
+
+$('btnMethod').onclick=()=>modal('Calculation basis and limitations',`
+<h5>What this tool does</h5>
+<p>It is a <b>screening</b> calculation for directly buried, bonded pre-insulated steel pipe
+(EN 253 assemblies) using the simplified friction-restrained model that EN 13941-1 permits for
+general documentation, in the form set out in manufacturers' design manuals (Kingspan LOGSTOR,
+isoplus). It finds where axial stress, movement, branch flexibility or fatigue become the
+governing issue, so you can place expansion elements and reinforcement before committing to a
+detailed model.</p>
+<p>It is <b>not</b> a substitute for a finite-element pipe stress analysis in SisKMR, PASS/START-PROF,
+CAEPIPE or equivalent. Beyond DN 300 EN 13941 expects a detailed analysis, and the tool flags
+this. Nothing here relieves the designer of responsibility for the design.</p>
+
+<h5>Soil friction</h5>
+<p><code>F = &mu; [ (1+K&#8320;)/2 &middot; &sigma;'&#7515; &middot; &pi;D&#8330; + G &minus; &gamma; &pi;D&#8330;&sup2;/4 ]</code>&nbsp; kN/m,
+with <code>&sigma;'&#7515; = &gamma; Z</code> at casing centreline, <code>Z = H + D&#8330;/2</code>.
+G is the self weight of the water-filled assembly. Below the water table the effective unit
+weight is used. This reproduces published manufacturer friction tables to within about 1%
+(for example DN100 series 2 at 0.8 m cover: 3.37 against 3.35 kN/m).</p>
+
+<h5>Axial stress and friction length</h5>
+<p>Fully restrained: <code>&sigma;max = &Delta;T &middot; E &middot; &alpha;</code>, with
+<code>E&alpha; = 2.52 MPa/K</code> by default (E = 210 000 MPa, &alpha; = 1.2&times;10&#8315;&#8309;), or
+temperature-dependent values from EN 13941 if selected. Internal pressure is not added to the
+axial stress: for the diameters normally in classes A and B its contribution is small, but for
+class C and thin walls you should check it separately.</p>
+<p><code>LF = &sigma;max &middot; As / F</code>. Where a section between expansion points is longer
+than 2&middot;LF, a fully restrained (locked) zone forms in the middle. Where it is shorter,
+<code>&sigma; = &frac12; L F / As</code> governs.</p>
+
+<h5>Movement</h5>
+<p>At a free end or bend: <code>&Delta;L = &alpha; &Delta;T Lx &minus; F Lx&sup2; / (2 As E)</code>,
+with Lx the smaller of the distance to the virtual anchor and LF. The resultant at a bend is the
+vector sum of the two leg movements. At an interior point such as a branch,
+<code>&Delta;LT = &alpha; &Delta;T s &minus; F (2L &minus; s) s / (2 E As)</code>.</p>
+
+<h5>Expansion cushions</h5>
+<p>Pad thickness <code>t = &Delta;R / 0.70</code> rounded up to 40 mm layers, capped at three
+layers so the casing surface temperature stays inside EN 13941 limits and the PUR compressive
+stress stays below 0.15 MPa. The pad zone length F is an empirical fit to the published
+manufacturer F-length curves, <code>F = 0.124 d&#8304;&#903;&#8308;&#8312; &Delta;L&#8304;&#903;&#178;&#8309;</code>
+(d, &Delta;L in mm), stepped F / &frac12;F / &frac14;F by layer.</p>
+<p>Each leg is padded over its own F, driven by the component of the bend's displacement
+<i>perpendicular to that leg</i> &mdash; for a right-angle bend that is the other leg's axial
+expansion. Thickness is set by the resultant movement, which is conservative for the individual
+legs.</p>
+<p>The pad zone is then checked for fit. Each leg is walked to the next bend, tee, reducer,
+fitting or pipe end, and the F-length is compared with the clear straight pipe actually
+available &mdash; pads cannot be laid through a mitred weld or a fitting. Where two padded
+bends face each other across a single leg, the manufacturer offset rule
+<code>Z &ge; 0.45 (F&#8321; + F&#8322;)</code> is applied; the tool distinguishes a Z offset from a
+loop crown from the geometry and notes that the rule is written for the former. Local
+excavation width is reported as casing OD + 2 &times; pad thickness + 2 &times; working space, and
+checked against a stated maximum trench width and a stated clear gap to an adjacent casing if
+you enter them.</p>
+
+<h5>Fatigue</h5>
+<p><code>&Delta;&sigma;all = 2811 / N&#8304;&#903;&#178;&#8309; / &gamma;</code> MPa. The constant reproduces
+the EN 13941 allowables quoted in the literature (707 MPa at 250 equivalent full cycles, 750 at
+200, 823 at 136). Local ranges are multiplied by a stress concentration factor: 1.6 at welded
+elbows, and for branches 1.8/2.6 plain, 1.25/1.5 reinforced, 1.15/1.35 forged (run/branch).
+These SCFs are screening values &mdash; confirm them against the component supplier's data.</p>
+
+<h5>Branch flexibility</h5>
+<p>The branch is treated as a guided cantilever taking the main pipe's axial movement as an
+imposed lateral displacement: <code>&sigma;b = 3 E d &Delta; / L&sup2;</code>, so the free length
+needed before the first bend or fixed point is
+<code>Lreq = &radic;(3 E d &Delta; &middot; SCF / &Delta;&sigma;all)</code>. Soil restraint along the
+branch is not modelled, which is why pads are called up over the same length.</p>
+
+<h5>Local stability (limit state C1)</h5>
+<p>Maximum axial stress from the EN 13941 r&#8344;/t curve: 334 MPa up to &oslash;323.9, then 308,
+279, 249, 225, 212, 205, 198, 200, 198, 188 MPa at &oslash;355.6 to &oslash;1219.</p>
+
+<h5>What is deliberately not covered</h5>
+<ul>
+<li>Twin pipes &mdash; single-pipe assemblies only. Twin pipe needs the coupled supply/return model.</li>
+<li>Vertical geometry, level changes, buoyancy and slope effects.</li>
+<li>Traffic and surcharge loads, ovalisation stress, and the PUR/PE stress checks in detail.</li>
+<li>Feedback from the pads into the friction model &mdash; F stays at the full soil value over the
+padded length, so movements there are marginally under-predicted.</li>
+<li>Global (upheaval / lateral) buckling verification.</li>
+<li>Valves, reducers and compensator components &mdash; forces are reported, not verified.</li>
+<li>Partial safety factors by class are tool defaults; set them to your project's adopted values.</li>
+</ul>
+`,'<button class="btn" onclick="closeModal()">Close</button>');
+
+/* ---- TEMPLATES -------------------------------------------------------- */
+function mkRoute(pts,opts){
+  let prev=null,first=null;
+  pts.forEach(p=>{
+    const id=nodeAt(p[0],p[1])||addNode(p[0],p[1],p[2]||'auto');
+    if(p[2])M.nodes[id].type=p[2];
+    if(prev!==null)addEdge(prev,id,opts||{});
+    else first=id;
+    prev=id;
+  });
+  return{first,last:prev};
+}
+function nodeAt(x,y){
+  for(const n of Object.values(M.nodes))if(Math.hypot(n.x-x,n.y-y)<0.4)return n.id;
+  return null;
+}
+const TEMPLATES=[
+ {name:'Straight main, no relief',sub:'600 m DN200 with terminal bends — shows the locked zone',
+  svg:'<path d="M12 40h96"/><path d="M12 40v-16M108 40v-16"/>',
+  build:()=>{M.def.dn=200;M.def.series=2;
+    mkRoute([[0,-40],[0,0],[600,0],[600,-40]],{dn:200,series:2});}},
+ {name:'Distribution street',sub:'DN150 main with DN80/DN50 service branches',
+  svg:'<path d="M8 24h104"/><path d="M32 24v20M60 24v20M88 24v20"/>',
+  build:()=>{M.def.dn=150;M.def.series=2;
+    mkRoute([[0,0],[320,0]],{dn:150,series:2});
+    [[70,'a'],[150,'b'],[240,'c']].forEach(b=>{
+      const he=(()=>{for(const e of Object.values(M.edges)){
+        const A=M.nodes[e.a],B=M.nodes[e.b];
+        if(Math.min(A.x,B.x)<b[0]&&Math.max(A.x,B.x)>b[0]&&Math.abs(A.y)<0.1)
+          return{e,t:(b[0]-A.x)/(B.x-A.x)};}return null;})();
+      if(he){const nid=splitEdge(he.e,he.t);
+        const n2=addNode(b[0],28,'free');addEdge(nid,n2,{dn:80,series:2});}
+    });}},
+ {name:'L-bend relief',sub:'Two legs meeting at a 90° bend with foam pads',
+  svg:'<path d="M10 12v30h100"/>',
+  build:()=>{M.def.dn=100;mkRoute([[0,-160],[0,0],[300,0]],{dn:100,series:2});}},
+ {name:'Z-bend offset',sub:'Offset around an obstruction — checks the Z dimension',
+  svg:'<path d="M8 14h44v24h60"/>',
+  build:()=>{M.def.dn=125;mkRoute([[0,0],[140,0],[140,26],[300,26]],{dn:125,series:2});}},
+ {name:'U-loop',sub:'Expansion loop between two long restrained runs',
+  svg:'<path d="M8 40h32V14h34v26h34"/>',
+  build:()=>{M.def.dn=250;mkRoute([[0,0],[200,0],[200,-22],[236,-22],[236,0],[440,0]],
+    {dn:250,series:2});}},
+ {name:'Anchored transmission',sub:'DN400 with a mid-line fixed point — gives the block force',
+  svg:'<path d="M8 28h104"/><rect x="52" y="20" width="16" height="16"/><path d="M52 20l16 16M52 36l16-16"/>',
+  build:()=>{M.def.dn=400;M.def.series=1;
+    mkRoute([[0,-60],[0,0],[400,0,'anchor'],[800,0],[800,-60]],{dn:400,series:1});}},
+ {name:'Rigid service branch',sub:'DN80 spur 15 m from a bend, into a fixed building entry',
+  svg:'<path d="M14 10v34h96"/><path d="M14 30h-6"/><rect x="2" y="25" width="7" height="10"/>',
+  build:()=>{M.def.dn=200;M.def.series=2;
+    mkRoute([[0,-300],[0,-15],[0,0],[200,0]],{dn:200,series:2});
+    mkRoute([[0,-15],[-2.5,-15,'anchor']],{dn:80,series:2});}},
+ {name:'Small network',sub:'Ring main with spurs — exercises every check',
+  svg:'<path d="M14 12h60l24 22-24 22H14z"/><path d="M44 12v-8M74 56v8"/>',
+  build:()=>{M.def.dn=150;
+    mkRoute([[0,0],[260,0],[340,70],[260,150],[0,150]],{dn:150,series:2});
+    mkRoute([[0,150],[0,0]],{dn:150,series:2});
+    const a=nodeAt(260,0);
+    if(a){const b=addNode(260,-90,'free');addEdge(a,b,{dn:80,series:2});}
+    const c=nodeAt(0,150);
+    if(c){const d=addNode(-110,150,'free');addEdge(c,d,{dn:100,series:2});}}}
+];
+$('btnTemplates').onclick=()=>{
+  modal('Start from a template','<div class="tplgrid">'+TEMPLATES.map((t,i)=>
+    '<button class="tpl" data-tpl="'+i+'"><svg viewBox="0 0 120 60">'+t.svg+
+    '</svg><b>'+t.name+'</b><span>'+t.sub+'</span></button>').join('')+'</div>'+
+    '<p style="margin-top:14px;color:var(--dim2);font-size:11px">Loading a template replaces the current sketch. '+
+    'Operating conditions, soil and design class are kept.</p>',
+    '<button class="btn" onclick="closeModal()">Cancel</button>');
+  document.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{
+    const T=TEMPLATES[+b.dataset.tpl];
+    M.nodes={};M.edges={};T.build();
+    M.meta.name='Example \u2014 '+T.name.toLowerCase();
+    $('projName').value=M.meta.name;
+    closeModal();snapshot();run();fit();toast(T.name+' loaded');
+  });
+};
+
+/* ---- REPORT ----------------------------------------------------------- */
+function report(){
+  if(!R){toast('Nothing to report yet');return;}
+  const A=R.A,th=R.th,s=R.summary,m=M.meta;
+  const T=(h,rows)=>'<table><thead><tr>'+h.map(x=>'<th>'+x+'</th>').join('')+
+    '</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map((c,i)=>'<td'+(i?'':' class="l"')+'>'+c+
+    '</td>').join('')+'</tr>').join('')+'</tbody></table>';
+  const dl=(o)=>'<dl>'+Object.entries(o).map(([k,v])=>'<dt>'+k+'</dt><dd>'+v+'</dd>').join('')+'</dl>';
+
+  const secRows=R.sections.map(S=>[S.id,fmt(S.L,1),[...new Set(S.edges.map(e=>e.dn))].join('/'),
+    [...new Set(S.edges.map(e=>e.series))].join('/'),fmt(S.f,2),fmt(S.As,0),fmt(S.LF,1),
+    fmt(S.lock,1),fmt(S.sig,0),fmt(100*S.util,0)+'%',fmt(S.d0,0),fmt(S.d1,0),
+    S.e0+'/'+S.e1]);
+  const bendRows=R.bendReport.map(b=>[M.nodes[b.n].label||b.n.slice(1,6),fmt(b.dev,0)+'&deg;',
+    fmt(b.sig,0),fmt(b.dR,0),b.layers,b.layers*40,fmt(b.F,1),
+    (b.fit?'':'<b class="bad">')+fmt(b.avail,1)+(b.fit?'':'</b>'),fmt(b.trench,2),
+    fmt(Math.ceil(b.F*2)/2,1)+' / '+fmt(Math.ceil(b.F)/2,1)+' / '+fmt(Math.ceil(b.F/2)/2,1)]);
+  const brRows=R.branchReport.map(b=>[M.nodes[b.n].label||b.n.slice(1,6),'DN'+b.dn,
+    fmt(b.lat,0),fmt(b.Lb,1),fmt(b.Lreq,1),fmt(b.sigBend,0),fmt(b.dsBr,0),
+    fmt(100*b.util,0)+'%',b.Lb<b.Lreq?'<b class="bad">Add bend</b>':'OK']);
+  const teeRows=R.teeReport.map(t=>[M.nodes[t.n].label||t.n.slice(1,6),t.scf,fmt(t.sig,0),
+    fmt(t.move,0),fmt(t.dsRun,0),fmt(A.dsFat,0),fmt(100*t.util,0)+'%',
+    t.util>1?'<b class="bad">Reinforce</b>':t.util>0.85?'<b class="warn">Review</b>':'OK']);
+  const anchors=Object.values(M.nodes).filter(n=>R.NR[n.id]&&R.NR[n.id].role==='anchor')
+    .map(n=>[n.label||n.id.slice(1,6),fmt(n.x,1)+', '+fmt(n.y,1),fmt(R.NR[n.id].sig,0),
+      fmt(R.NR[n.id].anchorF,0)]);
+  const findRows=R.findings.map(f=>['<span class="sev '+f.sev+'">'+f.sev+'</span>',f.code,
+    '<b>'+f.title+'</b><br>'+f.detail+(f.fix?'<br><i>'+f.fix+'</i>':''),f.ref]);
+
+  const html='<!doctype html><html><head><meta charset="utf-8"><title>'+
+  (m.name||'Network')+' \u2014 EN 13941 screening</title><style>'+
+  '@page{size:A4;margin:16mm 14mm}'+
+  'body{font:11px/1.5 "IBM Plex Sans",system-ui,sans-serif;color:#16202b;max-width:900px;margin:0 auto;padding:22px}'+
+  'h1{font-size:19px;letter-spacing:.03em;margin:0 0 2px}'+
+  'h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;margin:26px 0 8px;padding-bottom:5px;border-bottom:1.5px solid #16202b}'+
+  'h3{font-size:11.5px;margin:16px 0 5px;color:#2a2a25}'+
+  '.sub{color:#5b6b7d;font-size:11px;margin-bottom:16px}'+
+  '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #16202b;padding-bottom:9px}'+
+  '.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}'+
+  'table{width:100%;border-collapse:collapse;font-family:"IBM Plex Mono",monospace;font-size:9.5px;margin-bottom:10px}'+
+  'th{background:#f0f0ea;text-align:right;padding:4px 5px;border-bottom:1px solid #c7c7bd;font-weight:600;white-space:nowrap}'+
+  'td{text-align:right;padding:3.5px 5px;border-bottom:1px solid #e3e9ef;vertical-align:top}'+
+  'th:first-child,td.l{text-align:left}'+
+  'dl{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;margin:0 0 12px;font-size:11px}'+
+  'dt{color:#5b6b7d}dd{margin:0;font-family:"IBM Plex Mono",monospace}'+
+  '.two{display:grid;grid-template-columns:1fr 1fr;gap:0 30px}'+
+  '.sev{font-size:8.5px;text-transform:uppercase;letter-spacing:.08em;padding:1px 5px;border-radius:2px;color:#fff}'+
+  '.sev.critical{background:#8f1f17}.sev.high{background:#c1531c}.sev.watch{background:#a8790a}'+
+  '.sev.info{background:#5c6300}'+
+  '.bad{color:#8f1f17}.warn{color:#8a6600}'+
+  '.box{background:#f8f8f0;border-left:3px solid #8a9600;padding:9px 12px;margin:10px 0;font-size:10.5px;line-height:1.6}'+
+  'i{color:#5c6300;font-style:normal}'+
+  'footer{margin-top:26px;padding-top:9px;border-top:1px solid #d8d8d0;font-size:9.5px;color:#6b6b62}'+
+  '@media print{.noprint{display:none}}'+
+  '</style></head><body>'+
+  '<div class="head"><div><h1>'+(m.name||'Untitled network')+'</h1>'+
+  '<div class="sub">Static stress screening of buried pre-insulated pipework to EN 13941-1</div></div>'+
+  '<div class="mono" style="text-align:right;font-size:10px">'+(m.ref||'')+'<br>'+
+  (m.date||'')+'<br>'+(m.by||'')+'</div></div>'+
+
+  '<div class="box"><b>Status of this document.</b> This is a screening calculation using the '+
+  'simplified friction-restrained model of EN 13941-1, in the form given in manufacturers\u2019 '+
+  'design manuals. It identifies where expansion elements, cushions and branch reinforcement are '+
+  'needed. It does not replace a detailed pipe stress analysis, which EN 13941 expects for '+
+  'diameters above DN 300 and for any system outside the stated assumptions.</div>'+
+
+  '<h2>1 &nbsp; Design data</h2><div class="two"><div>'+
+  '<h3>Operating conditions</h3>'+dl({
+    'Network':M.ops.medium==='cooling'?'District cooling':'District heating',
+    'Max design temperature':M.ops.Tmax+' \u00b0C',
+    'Min design temperature':M.ops.Tmin+' \u00b0C',
+    'Installation temperature':M.ops.Tins+' \u00b0C',
+    'Installation method':{cold:'Cold laid, no pre-stress',preheat:'Heat pre-stressed in open trench',
+      ecomp:'One-shot compensators (E-comp)'}[M.ops.install],
+    'Reference temperature':fmt(th.Tref,0)+' \u00b0C',
+    'Design pressure':M.ops.pDesign+' MPa'})+
+  '<h3>Soil and trench</h3>'+dl({
+    'Surround':SOILS[M.soil.preset].name,'Unit weight \u03b3':M.soil.g+' kN/m\u00b3',
+    'K\u2080':M.soil.K0,'\u03bc (casing/soil)':M.soil.mu,
+    'Cover H':M.soil.cover+' m',
+    'Groundwater':M.soil.gwl>=99?'below pipe':(M.soil.gwl+' m depth'),
+    'Working space':(M.soil.workAllow||0)+' mm each side',
+    'Max trench width':M.soil.trenchMax>0?M.soil.trenchMax+' m':'not checked',
+    'Adjacent pipe gap':M.soil.pairGap>0?M.soil.pairGap+' mm':'not checked'})+
+  '</div><div>'+
+  '<h3>Design class and limits</h3>'+dl({
+    'Project class':A.cls+' \u2014 '+CLASSES[A.cls].name.split('\u2014')[1].trim(),
+    'Equivalent full cycles N':A.N,
+    'Fatigue partial factor':fmt(A.gFat,2),
+    'Adopted \u03c3all':fmt(A.sigAll,0)+' MPa',
+    'C1 local stability limit':fmt(A.c1,0)+' MPa',
+    'Fatigue allowable \u0394\u03c3':fmt(A.dsFat,0)+' MPa',
+    'Default branch detail':SCFS[M.design.teeType].name+' (per-tee overrides listed in the branch table)',
+    'Default branch SCF (run/branch)':SCFS[M.design.teeType].run+' / '+SCFS[M.design.teeType].br,
+    'E\u00b7\u03b1':fmt(th.Ea,3)+' MPa/K'})+
+  '<h3>Derived stresses</h3>'+dl({
+    'Restrained, heating':fmt(th.sigC,0)+' MPa (compression)',
+    'Restrained, cooling':fmt(th.sigT,0)+' MPa (tension)',
+    'Applied stress range \u0394\u03c3':fmt(th.dSig,0)+' MPa',
+    'Fatigue utilisation, plain pipe':fmt(100*th.dSig/A.dsFat,0)+' %'})+
+  '</div></div>'+
+
+  '<h2>2 &nbsp; Network summary</h2>'+dl({
+    'Total route length':fmt(s.totLen,0)+' m',
+    'Pipe lengths modelled':s.nEdges,'Expansion sections':s.nSec,
+    'Peak axial stress':fmt(s.maxSig,0)+' MPa ('+fmt(100*s.maxUtil,0)+'% of \u03c3all)',
+    'Largest movement':fmt(s.maxMove,0)+' mm',
+    'Findings':R.tally.critical+' critical, '+R.tally.high+' high, '+R.tally.watch+
+      ' to review, '+R.tally.info+' informative'})+
+
+  '<h2>3 &nbsp; Expansion sections</h2>'+
+  T(['Sec','L m','DN','Ser','F kN/m','As mm\u00b2','LF m','Locked m','\u03c3 MPa','Util','\u03941 mm','\u03942 mm','Ends'],secRows)+
+
+  (bendRows.length?'<h2>4 &nbsp; Expansion points and cushions</h2>'+
+   T(['Node','Angle','\u03c3 MPa','\u0394R mm','Layers','t mm','F m','Clear m','Trench m','Layer lengths m'],bendRows)+
+   '<div class="box">Pads are placed on the outside of each bend over the full F-length, stepped '+
+   'F / \u00bdF / \u00bcF by layer, with one 40 mm layer on the inside. Round lengths up to the '+
+   'nearest half metre. Wrap pads in geotextile where more than one layer is used. '+
+   '<b>Clear</b> is the straight pipe available before the next bend, tee or fitting \u2014 where it '+
+   'is less than F the pads do not fit as drawn. <b>Trench</b> is the local excavation width needed: '+
+   'casing outside diameter + 2 \u00d7 pad thickness + 2 \u00d7 working space.</div>':'')+
+
+  (teeRows.length?'<h2>5 &nbsp; Branch connections \u2014 run pipe</h2>'+
+   T(['Tee','Detail','\u03c3 MPa','Move mm','\u0394\u03c3\u00b7SCF','Allow','Util','Action'],teeRows):'')+
+  (brRows.length?'<h3>Branch pipes</h3>'+
+   T(['Tee','DN','\u0394lat mm','L avail m','L req m','\u03c3bend','\u0394\u03c3\u00b7SCF','Util','Action'],brRows):'')+
+
+  (anchors.length?'<h2>6 &nbsp; Fixed points</h2>'+
+   T(['Anchor','Position m','\u03c3 MPa','Force kN'],anchors)+
+   '<div class="box">Anchor forces are the unbalanced axial force. Size blocks against the '+
+   'allowable bearing pressure of the surrounding soil and confirm the shear transfer length '+
+   'through the foam either side.</div>':'')+
+
+  '<h2>'+(anchors.length?7:6)+' &nbsp; Findings</h2>'+
+  T(['','Code','Finding and recommendation','Basis'],findRows)+
+
+  '<h2>'+(anchors.length?8:7)+' &nbsp; Basis and limitations</h2>'+
+  '<div class="box"><b>Method.</b> Friction force '+
+  'F = \u03bc[(1+K\u2080)/2\u00b7\u03c3\u1d65\u00b7\u03c0D\u1d04 + G \u2212 \u03b3\u03c0D\u1d04\u00b2/4]. '+
+  'Fully restrained stress \u03c3 = \u0394T\u00b7E\u00b7\u03b1. Friction length LF = \u03c3\u00b7As/F. '+
+  'Movement \u0394L = \u03b1\u0394T\u00b7Lx \u2212 F\u00b7Lx\u00b2/(2\u00b7As\u00b7E); at an interior point '+
+  '\u0394LT = \u03b1\u0394T\u00b7s \u2212 F(2L\u2212s)s/(2\u00b7E\u00b7As). Pad thickness \u0394R/0.70 in 40 mm '+
+  'layers. Fatigue \u0394\u03c3all = 2811/N^0.25/\u03b3. Branch flexibility from the guided-cantilever '+
+  'relation \u03c3b = 3Ed\u0394/L\u00b2.</div>'+
+  '<div class="box"><b>Not covered.</b> Twin-pipe systems; vertical geometry and buoyancy; traffic '+
+  'and surcharge loading; ovalisation; detailed PUR and PE casing stress checks; global upheaval '+
+  'or lateral buckling; component-specific verification of valves, reducers and compensators; '+
+  'internal pressure contribution to axial stress. Partial safety factors by class are tool '+
+  'defaults and must be confirmed against the values adopted for the project. Results above '+
+  'DN 300 are indicative only \u2014 EN 13941 requires detailed analysis.</div>'+
+
+  '<footer>Generated by THERMOLINE on '+new Date().toLocaleString()+
+  '. Screening calculation only \u2014 to be checked by a competent engineer and, where the design '+
+  'proceeds, confirmed by detailed analysis.</footer>'+
+  '<p class="noprint" style="margin-top:18px"><button onclick="window.print()" '+
+  'style="padding:8px 18px;font:inherit;cursor:pointer">Print / save as PDF</button></p>'+
+  '</body></html>';
+  const w=window.open('','_blank');
+  if(!w){toast('Allow pop-ups to open the report');return;}
+  w.document.write(html);w.document.close();
+}
+$('btnReport').onclick=report;
+
+/* ---- INIT ------------------------------------------------------------- */
+window.addEventListener('resize',resize);
+buildRail();
+buildProjectPane();
+TEMPLATES[1].build();
+M.meta.name='Example \u2014 distribution street';
+$('projName').value=M.meta.name;
+snapshot();
+resize();
+run();
+fit();
+setTimeout(()=>toast('Press R to draw, B to branch off a pipe \u2014 see Guide for the full reference'),700);
+</script>
+</body>
+</html>
