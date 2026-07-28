@@ -60,6 +60,17 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .rail-hd{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim2);font-weight:700;padding:12px 12px 4px;font-family:var(--mono)}
 /* tooltip suppressed — tool names now shown inline */
 
+/* ---------- map controls ---------- */
+.mapctl{position:absolute;top:9px;right:11px;display:flex;flex-direction:column;gap:5px;z-index:20;pointer-events:auto}
+.mapbtn{background:#111111dd;border:1px solid #3a3a30;border-radius:var(--r);color:#f0f0e8;padding:5px 10px;cursor:pointer;font-size:11px;font-family:var(--sans);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.mapbtn:hover{background:#1e1e18;border-color:#6a6a58}
+.mapbtn.on{background:var(--accent);border-color:var(--accent-dk);color:var(--accent-ink);font-weight:700}
+.mapbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7;flex-shrink:0}
+.tileattr{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.84);border-radius:2px;padding:1px 5px;font-size:9px;color:#444;pointer-events:none;z-index:10;display:none}
+.tileattr.on{display:block}
+.georef-chip{position:absolute;top:46px;right:11px;background:#111111dd;border:1px solid #3a3a30;border-radius:var(--r);padding:6px 10px;font-family:var(--mono);font-size:10px;color:#c4d600;z-index:20;pointer-events:none;display:none}
+.georef-chip.on{display:block}
+
 /* ---------- canvas ---------- */
 #cv{flex:1;display:block;width:100%;cursor:crosshair}
 .hud{position:absolute;pointer-events:none;font-family:var(--mono);font-size:10.5px;color:var(--text)}
@@ -226,6 +237,16 @@ select.fld{text-align:left;cursor:pointer}
 
   <div class="stagewrap">
     <canvas id="cv"></canvas>
+    <div class="mapctl">
+      <button class="mapbtn" id="btnMap" title="Toggle OpenStreetMap background (cached for offline use)">
+        <svg viewBox="0 0 24 24"><path d="M3 7l6-4 6 4 6-4v13l-6 4-6-4-6 4z"/><path d="M9 3v13M15 7v13"/></svg>Map
+      </button>
+      <button class="mapbtn" id="btnAnchor" title="Anchor sketch to a real-world location" style="display:none">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Anchor
+      </button>
+    </div>
+    <div class="tileattr" id="tileAttr">&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors</div>
+    <div class="georef-chip" id="georefChip"></div>
     <div class="hud tl" id="hudTL"></div>
     <div class="hud br" id="hudBR"></div>
     <div class="legend" id="legend"></div>
@@ -356,7 +377,7 @@ const CLASSES={
   B:{name:'B — high axial stress, small/medium DN', gFat:1.10, gStab:1.00,
      hint:'Yield exceeded in the restrained zone. DN 300 or less.'},
   C:{name:'C — large DN or high internal pressure', gFat:1.25, gStab:1.10,
-     hint:'DN above 300 or p above 1.6 MPa. Detailed analysis normally required.'}
+     hint:'DN above 300 or p above 16 bar. Detailed analysis normally required.'}
 };
 
 /* Low-cycle fatigue design curve for the bonded steel service pipe.
@@ -388,15 +409,16 @@ const uid=p=>p+Math.random().toString(36).slice(2,8);
 function blankModel(){
   return{
     meta:{name:'Untitled network',ref:'',by:'',client:'',date:new Date().toISOString().slice(0,10),notes:''},
-    ops:{medium:'heating',Tmax:110,Tmin:10,Tins:10,Tpre:60,pDesign:1.6,install:'cold'},
+    ops:{medium:'heating',Tmax:110,Tmin:10,Tins:10,Tpre:60,pDesign:16,install:'cold'},
     soil:{preset:'sand-dense',g:19,K0:0.46,mu:0.40,cover:0.8,gwl:99,
           workAllow:100,trenchMax:0,pairGap:0},
     design:{cls:'auto',duty:'distribution',cycles:250,sigMode:'manual',sigAll:190,
             gFat:0,teeType:'plain',flexAngle:70,anchorLimit:150,exactE:false},
-    view:{show:'stress',labels:true,pads:true,moves:true,grid:true},
+    view:{show:'stress',labels:true,angles:true,pads:true,moves:true,grid:true,map:false,mapOpacity:0.85},
     def:{dn:100,series:2},
     nodes:{},edges:{},
-    z:{p:[],i:-1}
+    z:{p:[],i:-1},
+    geo:null  /* {lat,lon,wx,wy} — sketch point (wx,wy) maps to (lat,lon) */
   };
 }
 let M=blankModel();
@@ -404,6 +426,7 @@ let R=null;
 let REF={};   /* id -> tag string, rebuilt each analysis */
 let sel={kind:null,id:null};
 let hover={kind:null,id:null};
+let badgeHover={g:null,px:0,py:0};  /* currently hovered badge group */
 
 function addNode(x,y,type){const id=uid('n');
   M.nodes[id]={id,x,y,type:type||'auto',label:'',padOverride:null,teeType:''};return id;}
@@ -484,7 +507,7 @@ function autoClass(){
   if(M.design.cls!=='auto')return M.design.cls;
   const th=thermal();
   let maxDn=0;for(const e of Object.values(M.edges))maxDn=Math.max(maxDn,e.dn);
-  if(maxDn>300||M.ops.pDesign>1.6)return 'C';
+  if(maxDn>300||M.ops.pDesign>16)return 'C';
   return th.sigMax>214?'B':'A';
 }
 
@@ -1242,6 +1265,172 @@ let tool='route';
 const W2S=(x,y)=>({x:x*V.sc+V.tx,y:y*V.sc+V.ty});
 const S2W=(x,y)=>({x:(x-V.tx)/V.sc,y:(y-V.ty)/V.sc});
 
+
+/* ============================ MAP TILE ENGINE ============================ */
+const TILE_SIZE=256;
+const OSM_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const CACHE_NAME='thermoline-osm-v1';
+const CACHE_MAX_AGE=7*24*3600*1000;  /* 7 days in ms */
+
+/* Web-Mercator projection helpers (EPSG:3857) */
+function latLonToTile(lat,lon,zoom){
+  const n=Math.pow(2,zoom);
+  const x=n*(lon+180)/360;
+  const y=n*(1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2;
+  return{x,y,z:zoom};
+}
+function tileToLatLon(tx,ty,zoom){
+  const n=Math.pow(2,zoom);
+  const lon=tx/n*360-180;
+  const lat=Math.atan(Math.sinh(Math.PI*(1-2*ty/n)))*180/Math.PI;
+  return{lat,lon};
+}
+/* World coord (metres) <-> tile pixel at a given zoom */
+function worldToTilePx(wx,wy,geo,zoom){
+  /* anchor: sketch point (geo.wx, geo.wy) maps to (geo.lat, geo.lon) */
+  const anchorTile=latLonToTile(geo.lat,geo.lon,zoom);
+  /* one sketch metre = V.sc canvas pixels; tile pixels = TILE_SIZE px per tile */
+  /* We need: how many tile pixels correspond to one sketch metre? */
+  /* At zoom z, one tile spans approx (40075016*cos(lat)/2^z) metres */
+  const mPerTile=40075016*Math.cos(geo.lat*Math.PI/180)/Math.pow(2,zoom);
+  const tilePxPerSketchM=TILE_SIZE/mPerTile;
+  const atpx=anchorTile.x*TILE_SIZE+(wx-geo.wx)*tilePxPerSketchM;
+  const atpy=anchorTile.y*TILE_SIZE-(wy-geo.wy)*tilePxPerSketchM;  /* y inverted */
+  return{px:atpx,py:atpy,tilePxPerSketchM,mPerTile};
+}
+
+const _tileImgs={};  /* cache of loaded Image objects: 'z/x/y' -> img|'loading'|'error' */
+async function fetchTileWithCache(z,x,y){
+  const url=OSM_URL.replace('{z}',z).replace('{x}',x).replace('{y}',y);
+  const key='thermoline-osm-v1:'+url;
+  /* Try Cache API first */
+  try{
+    const cache=await caches.open(CACHE_NAME);
+    let resp=await cache.match(url);
+    if(resp){
+      const age=Date.now()-new Date(resp.headers.get('x-cached-at')||0).getTime();
+      if(age<CACHE_MAX_AGE)return url;  /* already cached, URL is fine */
+    }
+    /* Fetch fresh */
+    const fresh=await fetch(url,{mode:'cors'});
+    if(!fresh.ok)throw new Error('tile '+fresh.status);
+    /* Store with a custom header for age tracking */
+    const headers=new Headers(fresh.headers);
+    headers.set('x-cached-at',new Date().toISOString());
+    const blob=await fresh.blob();
+    const resp2=new Response(blob,{headers});
+    await cache.put(url,resp2);
+    return url;
+  } catch(e){
+    /* Cache API not available (e.g. file:// in some browsers): fall back to direct */
+    return url;
+  }
+}
+
+function loadTile(z,x,y){
+  const key=z+'/'+x+'/'+y;
+  if(_tileImgs[key])return _tileImgs[key];
+  _tileImgs[key]='loading';
+  fetchTileWithCache(z,x,y).then(url=>{
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{_tileImgs[key]=img; if(M.view.map)render();};
+    img.onerror=()=>{_tileImgs[key]='error';};
+    img.src=url;
+  });
+  return 'loading';
+}
+
+function bestZoom(){
+  /* Pick OSM zoom so one tile is roughly 200–400 screen pixels */
+  /* V.sc = sketch pixels per sketch metre.  sketch metres per tile at zoom z = mPerTile */
+  if(!M.geo)return 15;
+  const lat=M.geo.lat;
+  for(let z=19;z>=1;z--){
+    const mPerTile=40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,z);
+    const screenPxPerTile=mPerTile*V.sc;
+    if(screenPxPerTile>=180&&screenPxPerTile<=1400)return z;
+  }
+  return 14;
+}
+
+function drawMapTiles(){
+  if(!M.geo)return;
+  const zoom=bestZoom();
+  const geo=M.geo;
+  /* Corner world coords */
+  const tl=S2W(0,0), br=S2W(V.w,V.h);
+  const {px:tlpx,py:tlpy,tilePxPerSketchM}=worldToTilePx(tl.x,tl.y,geo,zoom);
+  /* tile indices for corners */
+  const txMin=Math.floor(tlpx/TILE_SIZE);
+  const tyMin=Math.floor(tlpy/TILE_SIZE);
+  const {px:brpx,py:brpy}=worldToTilePx(br.x,br.y,geo,zoom);
+  const txMax=Math.floor(brpx/TILE_SIZE);
+  const tyMax=Math.floor(brpy/TILE_SIZE);
+  const maxT=Math.pow(2,zoom)-1;
+  ctx.globalAlpha=M.view.mapOpacity||0.85;
+  for(let tx=txMin;tx<=txMax;tx++){
+    for(let ty=tyMin;ty<=tyMax;ty++){
+      if(tx<0||ty<0||tx>maxT||ty>maxT)continue;
+      /* Canvas pixel coords of this tile's top-left */
+      const cpx=Math.round((tx*TILE_SIZE-tlpx)*V.sc/tilePxPerSketchM);  /* adjusted for dpr below */
+      const cpy=Math.round((ty*TILE_SIZE-tlpy)*V.sc/tilePxPerSketchM);
+      const csz=Math.ceil(TILE_SIZE*V.sc/tilePxPerSketchM+1);  /* +1 avoids sub-pixel gaps */
+      const tile=loadTile(zoom,tx,ty);
+      if(tile&&tile!=='loading'&&tile!=='error'){
+        ctx.drawImage(tile,cpx,cpy,csz,csz);
+      } else {
+        ctx.fillStyle='#e8e8e0';
+        ctx.fillRect(cpx,cpy,csz,csz);
+        if(tile==='loading'){
+          ctx.fillStyle='#aaa'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+          ctx.fillText('\u29d6',cpx+csz/2,cpy+csz/2+3);
+        }
+      }
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+/* Prewarm tiles in the current view */
+function prewarmTiles(){
+  if(!M.geo||!M.view.map)return;
+  const zoom=bestZoom();
+  const tl=S2W(0,0),br=S2W(V.w,V.h);
+  const {px:tlpx,py:tlpy,tilePxPerSketchM}=worldToTilePx(tl.x,tl.y,M.geo,zoom);
+  const {px:brpx,py:brpy}=worldToTilePx(br.x,br.y,M.geo,zoom);
+  const maxT=Math.pow(2,zoom)-1;
+  for(let tx=Math.max(0,Math.floor(tlpx/TILE_SIZE));tx<=Math.min(maxT,Math.floor(brpx/TILE_SIZE));tx++)
+    for(let ty=Math.max(0,Math.floor(tlpy/TILE_SIZE));ty<=Math.min(maxT,Math.floor(brpy/TILE_SIZE));ty++)
+      loadTile(zoom,tx,ty);
+}
+
+/* Georef: convert screen click to a lat/lon guess via the current anchor, or
+   set the anchor from a lat/lon and a sketch world coord */
+function setGeoAnchor(lat,lon,wx,wy){
+  M.geo={lat,lon,wx,wy};
+  Object.keys(_tileImgs).forEach(k=>delete _tileImgs[k]);
+  M.view.map=true;
+  updateGeoChip();
+  render();
+}
+function updateGeoChip(){
+  const chip=$('georefChip'), btn=$('btnAnchor');
+  if(!M.geo){chip.className='georef-chip';return;}
+  chip.className='georef-chip on';
+  chip.textContent=M.geo.lat.toFixed(5)+', '+M.geo.lon.toFixed(5);
+  btn&&(btn.style.display='');
+}
+
+/* Geocode a place name via OSM Nominatim */
+async function geocode(q){
+  const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q);
+  const r=await fetch(url,{headers:{'User-Agent':'Thermoline/1.0'}});
+  const j=await r.json();
+  if(!j.length)return null;
+  return{lat:parseFloat(j[0].lat),lon:parseFloat(j[0].lon),name:j[0].display_name};
+}
+
 function resize(){
   const r=cv.parentElement.getBoundingClientRect();
   V.dpr=window.devicePixelRatio||1; V.w=r.width; V.h=r.height;
@@ -1249,6 +1438,7 @@ function resize(){
   cv.style.width=r.width+'px'; cv.style.height=r.height+'px';
   ctx.setTransform(V.dpr,0,0,V.dpr,0,0);
   render();
+  prewarmTiles();
 }
 function fit(){
   const ns=Object.values(M.nodes);
@@ -1284,8 +1474,15 @@ function niceStep(px){
 
 function render(){
   ctx.clearRect(0,0,V.w,V.h);
-  ctx.fillStyle='#f5f5f1'; ctx.fillRect(0,0,V.w,V.h);
-  if(M.view.grid)drawGrid();
+  if(M.view.map&&M.geo){
+    ctx.fillStyle='#e8e4dc'; ctx.fillRect(0,0,V.w,V.h);
+    drawMapTiles();
+    /* light overlay so pipes stay readable against busy maps */
+    ctx.fillStyle='rgba(245,245,241,0.18)'; ctx.fillRect(0,0,V.w,V.h);
+  } else {
+    ctx.fillStyle='#f5f5f1'; ctx.fillRect(0,0,V.w,V.h);
+    if(M.view.grid)drawGrid();
+  }
   const vw=M.view.show;
 
   /* pads first (under pipes) */
@@ -1307,10 +1504,27 @@ function render(){
     /* service pipe */
     let col='#3a3a34';
     if(vw==='stress'&&r){
-      const g=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
-      g.addColorStop(0,ramp(r.sigA/(R.A.sigAll||1)));
-      g.addColorStop(1,ramp(r.sigB/(R.A.sigAll||1)));
-      ctx.strokeStyle=g;
+      /* Use sigAt() to sample the stress profile across this specific edge.
+         For a free/free section the peak is in the middle, not at the ends,
+         so a simple endpoint gradient would show green everywhere.
+         Sample at ~7 points and build a proper gradient.                */
+      const S=R.sections.find(sc=>sc.id===r.sec);
+      if(S&&S.sigAt&&(r.sigA!==r.sigB||r.sigA<r.sigMax-1)){
+        const g=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+        const steps=6;
+        for(let i=0;i<=steps;i++){
+          const t=i/steps;
+          const xSec=r.x0+(r.x1-r.x0)*t;  /* x within section */
+          const sig=S.sigAt(xSec);
+          g.addColorStop(t,ramp(sig/(R.A.sigAll||1)));
+        }
+        ctx.strokeStyle=g;
+      } else {
+        const g=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+        g.addColorStop(0,ramp(r.sigA/(R.A.sigAll||1)));
+        g.addColorStop(1,ramp(r.sigB/(R.A.sigAll||1)));
+        ctx.strokeStyle=g;
+      }
     } else if(vw==='dn'){
       const t=Math.min(1,(e.dn-20)/580); ctx.strokeStyle=mix('#d6d6cc','#12140a',t);
     } else if(vw==='util'&&r){ctx.strokeStyle=ramp(r.util);}
@@ -1360,11 +1574,52 @@ function render(){
   /* nodes */
   for(const n of Object.values(M.nodes))drawNode(n);
 
+  /* bend angles */
+  if(M.view.angles&&V.sc>1.2)drawAngles();
+
   /* movement arrows */
   if(M.view.moves&&R)drawMoves();
 
   /* finding badges */
   if(R)drawBadges();
+  /* badge callout tooltip */
+  if(badgeHover.g){
+    const list=badgeHover.g.list, px=badgeHover.px, py=badgeHover.py;
+    const maxW=310, lh=17, pad=11, headH=22;
+    const lines=[];
+    list.forEach(f=>{
+      lines.push({bold:true,col:SEVC[f.sev],txt:f.code+' \u2014 '+f.title});
+      /* wrap detail to ~44 chars */
+      const words=f.detail.replace(/<[^>]+>/g,'').split(' ');
+      let line=''; words.forEach(w=>{if((line+w).length>44){lines.push({txt:line.trim()});line='';}line+=w+' ';});
+      if(line.trim())lines.push({txt:line.trim()});
+      if(f.fix){lines.push({txt:'\u2192 '+f.fix.replace(/<[^>]+>/g,'').slice(0,120),dim:true});}
+      lines.push({sep:true});
+    });
+    while(lines.length&&lines[lines.length-1].sep)lines.pop();
+    const h=lines.length*lh+pad*2;
+    /* position: prefer right of badge, flip if off-screen */
+    let cx=px+20, cy=py-h/2;
+    if(cx+maxW>V.w-8)cx=px-maxW-20;
+    if(cy<8)cy=8; if(cy+h>V.h-8)cy=V.h-h-8;
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=12;ctx.shadowOffsetY=4;
+    ctx.fillStyle='#111111';
+    roundRect(ctx,cx,cy,maxW,h,6);ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle='#3a3a30';ctx.lineWidth=1;
+    roundRect(ctx,cx,cy,maxW,h,6);ctx.stroke();
+    ctx.font='12px "IBM Plex Sans",system-ui,sans-serif';
+    let y=cy+pad+11;
+    lines.forEach(l=>{
+      if(l.sep){ctx.strokeStyle='#2a2a24';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx+8,y+2);ctx.lineTo(cx+maxW-8,y+2);ctx.stroke();y+=9;return;}
+      ctx.fillStyle=l.col||( l.dim?'#8a8a78':'#e0e0d4');
+      ctx.font=(l.bold?'700':'400')+' '+(l.bold?'11':'10.5')+'px "IBM Plex Sans",system-ui,sans-serif';
+      ctx.textAlign='left'; ctx.fillText(l.txt,cx+8,y); y+=lh;
+    });
+    ctx.fillStyle='#6a6a58';ctx.font='9px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.fillText('click to open in findings',cx+maxW/2,cy+h-5);
+  }
 
   /* live drawing preview */
   if(draw.active&&draw.lastNode&&draw.preview){
@@ -1488,6 +1743,33 @@ function drawMoves(){
   }
 }
 
+function drawAngles(){
+  ctx.font='600 10px "IBM Plex Mono",monospace';
+  ctx.textAlign='center';
+  for(const n of Object.values(M.nodes)){
+    const es=edgesAt(n.id); if(es.length!==2)continue;
+    const d1=dirFrom(es[0],n.id), d2=dirFrom(es[1],n.id);
+    const dot=Math.max(-1,Math.min(1,d1.x*d2.x+d1.y*d2.y));
+    const dev=180-Math.acos(dot)*180/Math.PI; /* 0=straight, 90=right angle */
+    if(dev<2)continue;                         /* skip near-straight welds */
+    const pw=W2S(n.x,n.y);
+    /* place label along the bisector of the two legs, outside the bend */
+    const bx=(d1.x+d2.x), by=(d1.y+d2.y);
+    const bl=Math.hypot(bx,by)||1;
+    /* bisector points into the bend; we want outside */
+    const ox=-bx/bl, oy=-by/bl;
+    const S=Math.max(4,Math.min(9,V.sc*0.5+3));
+    const off=S+14;
+    const tx=pw.x+ox*off, ty=pw.y+oy*off;
+    const txt=dev.toFixed(0)+'°';
+    const tw=ctx.measureText(txt).width;
+    ctx.fillStyle='rgba(255,255,255,.86)';
+    ctx.fillRect(tx-tw/2-3,ty-9,tw+6,13);
+    ctx.fillStyle='#3a3a34';
+    ctx.fillText(txt,tx,ty+1);
+  }
+}
+
 function drawPads(){
   ctx.save();
   for(const nid in R.NR){
@@ -1514,7 +1796,9 @@ function drawPads(){
   ctx.restore();
 }
 
+const _badges=[];  /* [{bx,by,r,list}] — rebuilt every frame */
 function drawBadges(){
+  _badges.length=0;
   const at={};
   R.findings.forEach(f=>{
     if(f.sev==='info')return;
@@ -1562,6 +1846,7 @@ function drawBadges(){
     /* thin line from badge to node */
     ctx.strokeStyle=SEVC[worst.sev];ctx.lineWidth=1;ctx.globalAlpha=.5;
     ctx.beginPath();ctx.moveTo(pw.x,pw.y);ctx.lineTo(bx,by);ctx.stroke();ctx.globalAlpha=1;
+    _badges.push({bx,by,r:sels?9:7,list:g.list,worst});
   });
 }
 
@@ -1635,6 +1920,13 @@ function drawHud(){
   br.innerHTML='<span class="chip">x '+mouse.wx.toFixed(1)+' &nbsp; y '+mouse.wy.toFixed(1)+' m</span>';
 }
 
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+}
+
 /* ============================ 5. INTERACTION ============================ */
 const TOOLS=[
  {hd:'Draw'},
@@ -1678,7 +1970,10 @@ const TOOLS=[
    act:()=>{M.view.pads=!M.view.pads;render();syncRail();}},
  {id:'tmove',  k:'', name:'Movements', sub:'arrow vectors',
    svg:'<path d="M4 12h14M14 7l5 5-5 5"/>',
-   act:()=>{M.view.moves=!M.view.moves;render();syncRail();}}
+   act:()=>{M.view.moves=!M.view.moves;render();syncRail();}},
+ {id:'tangles',k:'', name:'Angles', sub:'bend angle labels',
+   svg:'<path d="M3 19V5M21 19V5M3 19l9-6 9 6"/><path d="M12 13V5"/>',
+   act:()=>{M.view.angles=!M.view.angles;render();syncRail();}}
 ];
 function buildRail(){
   const r=document.getElementById('rail'); r.innerHTML='';
@@ -1705,7 +2000,7 @@ function syncRail(){
   document.querySelectorAll('.tool').forEach(b=>{
     const id=b.dataset.id;
     let on=(id===tool);
-    if(id==='tlabel')on=M.view.labels; if(id==='tpad')on=M.view.pads; if(id==='tmove')on=M.view.moves;
+    if(id==='tlabel')on=M.view.labels; if(id==='tpad')on=M.view.pads; if(id==='tmove')on=M.view.moves; if(id==='tangles')on=M.view.angles;
     if(id==='fit')on=false;
     b.classList.toggle('on',on);
   });
@@ -1838,8 +2133,11 @@ function buildDetour(kind,fromId,dir,opts,flip){
     addEdge(p1,p2,opts);
     const p3=addNode(M.nodes[p2].x-perp.x*depth,M.nodes[p2].y-perp.y*depth,'auto');
     addEdge(p2,p3,opts);
-    /* tag all internal nodes so auto-resize can identify them */
+    /* tag all internal nodes so auto-resize can identify them.
+       Also store the original pipe dir/perp on the entry node for clean resize. */
     M.nodes[p1]._loop=true; M.nodes[p2]._loop=true; M.nodes[p3]._loop=true;
+    M.nodes[fromId]._loopDir=dir; M.nodes[fromId]._loopPerp=perp;
+    M.nodes[p3]._loopExit=true;
     return p3;
   }
   const off=zOffsetDefault(opts.dn);
@@ -1854,48 +2152,80 @@ function buildDetour(kind,fromId,dir,opts,flip){
    Walks nodes on the loop and expands legs that have PAD-1 pending.           */
 function autoResizeLoopAfterInsert(tipId, kind){
   if(!R)return;
-  let changed=false;
-  const visited=new Set(), queue=[tipId];
-  for(let depth=0;queue.length&&depth<8;depth++){
-    const cur=queue.shift(); if(visited.has(cur))continue; visited.add(cur);
-    const r=R.NR[cur]; if(!r||!r.pad)continue;
-    r.pad.legs.forEach(leg=>{
-      if(leg.F<=leg.avail+0.05)return;
-      const e=M.edges[leg.e]; if(!e)return;
-      const nA=M.nodes[e.a],nB=M.nodes[e.b]; if(!nA||!nB)return;
-      const need=leg.F+0.1;   /* F + 100 mm clearance */
-      /* only expand the far end (degree ≤ 2 = not a main junction) */
-      /* only expand nodes that are interior to the detour */
-      const fa=M.nodes[e.a]&&M.nodes[e.a]._loop, fb=M.nodes[e.b]&&M.nodes[e.b]._loop;
-      const farId=fb?e.b:(fa?e.a:null);
-      if(!farId)return;
-      const nFar=M.nodes[farId], nNear=M.nodes[farId===e.b?e.a:e.b];
-      const L=Math.hypot(nFar.x-nNear.x,nFar.y-nNear.y)||1;
-      const ux=(nFar.x-nNear.x)/L, uy=(nFar.y-nNear.y)/L;
-      M.nodes[farId].x=nNear.x+ux*need;
-      M.nodes[farId].y=nNear.y+uy*need;
-      changed=true;
-    });
-    /* also apply the PAD-3 Z-rule: crown must be >= 0.45*(F1+F2) */
-    if(r.pad.zNeed&&r.pad.zHave<r.pad.zNeed-0.05){
-      r.pad.legs.forEach(leg=>{
-        const e=M.edges[leg.e]; if(!e)return;
-        const nA=M.nodes[e.a],nB=M.nodes[e.b]; if(!nA||!nB)return;
-        const f2a=M.nodes[e.a]&&M.nodes[e.a]._loop, f2b=M.nodes[e.b]&&M.nodes[e.b]._loop;
-        const farId=f2b?e.b:(f2a?e.a:null);
-        if(!farId)return;
-        const nFar=M.nodes[farId], nNear=M.nodes[farId===e.b?e.a:e.b];
-        const L=Math.hypot(nFar.x-nNear.x,nFar.y-nNear.y)||1;
-        const ux=(nFar.x-nNear.x)/L, uy=(nFar.y-nNear.y)/L;
-        const need=r.pad.zNeed+0.1;
-        M.nodes[farId].x=nNear.x+ux*need;
-        M.nodes[farId].y=nNear.y+uy*need;
-        changed=true;
-      });
-    }
-    edgesAt(cur).forEach(e=>queue.push(other(e,cur)));
+  /* Find the entry node (the split node that has _loopDir stored on it).
+     Always start the search from tipId and walk back. */
+  let entryId=null;
+  const allIds=[tipId,...Object.keys(M.nodes)];
+  for(const id of allIds){if(M.nodes[id]&&M.nodes[id]._loopDir){entryId=id;break;}}
+  if(!entryId)return;
+  const entry=M.nodes[entryId];
+  const dir=entry._loopDir, perp=entry._loopPerp;
+  if(!dir||!perp)return;
+
+  /* Collect the ordered chain of _loop nodes: entry → p1 → p2 → exit */
+  const chain=[entryId];
+  const loopIds=new Set(Object.keys(M.nodes).filter(id=>M.nodes[id]._loop));
+  let cur=entryId;
+  for(let i=0;i<6;i++){
+    const next=edgesAt(cur).map(e=>other(e,cur))
+      .find(id=>loopIds.has(id)&&!chain.includes(id));
+    if(!next)break; chain.push(next); cur=next;
   }
-  if(changed){snapshot();run();}
+  /* Need at least p1, p2, p3 */
+  if(chain.length<4)return; /* entry + 3 interior */
+
+  /* Determine required depth from pad analysis */
+  let reqDepth=0, reqWidth=0;
+  for(const nid of chain){
+    const r=R.NR[nid]; if(!r||!r.pad)continue;
+    r.pad.legs.forEach(leg=>{
+      if(leg.F>leg.avail){reqDepth=Math.max(reqDepth,leg.F+0.2);}
+    });
+    if(r.pad.zNeed&&r.pad.zHave<r.pad.zNeed){
+      reqWidth=Math.max(reqWidth,r.pad.zNeed+0.2);
+    }
+  }
+  if(reqDepth<=0&&reqWidth<=0)return;
+
+  /* Use initial dimensions if analysis says no expansion needed */
+  const p1n=M.nodes[chain[1]], p2n=M.nodes[chain[2]];
+  const curDepth=Math.abs(perp.x*(p1n.x-entry.x)+perp.y*(p1n.y-entry.y));
+  const curWidth=Math.abs(dir.x*(p2n.x-p1n.x)+dir.y*(p2n.y-p1n.y));
+  const newDepth=Math.max(curDepth,reqDepth);
+  /* Width must be >= F from each corner so pads fit on the crown legs.
+     Each crown bend sees the F derived from movement along that crown leg.
+     Use reqWidth (from PAD-3) OR reqDepth (pads from corners extend inward) */
+  const newWidth=Math.max(curWidth,reqWidth,reqDepth);
+  if(Math.abs(newDepth-curDepth)<0.05&&Math.abs(newWidth-curWidth)<0.05)return;
+
+  /* Rebuild the rectangle exactly, preserving entry position */
+  M.nodes[chain[1]].x=entry.x+perp.x*newDepth;
+  M.nodes[chain[1]].y=entry.y+perp.y*newDepth;
+  M.nodes[chain[2]].x=M.nodes[chain[1]].x+dir.x*newWidth;
+  M.nodes[chain[2]].y=M.nodes[chain[1]].y+dir.y*newWidth;
+  M.nodes[chain[3]].x=entry.x+dir.x*newWidth;
+  M.nodes[chain[3]].y=entry.y+dir.y*newWidth;
+  /* If there are more nodes (shouldn't be for a basic loop) leave them */
+  snapshot();run();
+  /* Second pass: after analysis the pad zones are re-computed with the new
+     geometry. If they still don't fit (rare — happens when dL was larger
+     than estimated), expand depth and rebuild again. */
+  if(R){
+    let maxF=0;
+    for(const nid of chain){
+      const r2=R.NR[nid]; if(!r2||!r2.pad)continue;
+      r2.pad.legs.forEach(l=>{if(l.F>l.avail+0.05)maxF=Math.max(maxF,l.F+0.2);});
+    }
+    if(maxF>newDepth+0.05){
+      M.nodes[chain[1]].x=entry.x+perp.x*maxF;
+      M.nodes[chain[1]].y=entry.y+perp.y*maxF;
+      M.nodes[chain[2]].x=M.nodes[chain[1]].x+dir.x*Math.max(newWidth,maxF*0.9);
+      M.nodes[chain[2]].y=M.nodes[chain[1]].y+dir.y*Math.max(newWidth,maxF*0.9);
+      M.nodes[chain[3]].x=entry.x+dir.x*Math.max(newWidth,maxF*0.9);
+      M.nodes[chain[3]].y=entry.y+dir.y*Math.max(newWidth,maxF*0.9);
+      snapshot();run();
+    }
+  }
 }
 
 /* snapping --------------------------------------------------------------*/
@@ -1995,6 +2325,17 @@ cv.addEventListener('mousedown',ev=>{
     pan={sx,sy,tx:V.tx,ty:V.ty};return;
   }
   if(ev.button!==0)return;
+  /* badge click: navigate to first finding in the group */
+  const hitBadge=_badges.find(b=>Math.hypot(sx-b.bx,sy-b.by)<=b.r+8);
+  if(hitBadge&&hitBadge.list.length){
+    const f=hitBadge.list[0];
+    sel={kind:'find',id:f.id};
+    showTab('pFindings');
+    buildFindingsPane();
+    /* scroll to the finding */
+    setTimeout(()=>{const el=document.querySelector('[data-find="'+f.id+'"]');if(el)el.scrollIntoView({block:'nearest'});},50);
+    render();return;
+  }
   const sn=snapPoint(w.x,w.y,ev);
   if(tool==='route'){placePoint(sn,ev);render();return;}
   if(tool==='branch'){
@@ -2059,8 +2400,18 @@ window.addEventListener('mousemove',ev=>{
   if(tool!=='select')snapPoint(w.x,w.y,ev);
   const n=hitNode(sx,sy); const he=n?null:hitEdge(sx,sy);
   const nh={kind:n?'node':(he?'edge':null),id:n?n.id:(he?he.e.id:null)};
-  if(nh.kind!==hover.kind||nh.id!==hover.id){hover=nh;render();}
-  else drawHud();
+  /* badge hit-test */
+  const hitBadge=_badges.find(b=>Math.hypot(sx-b.bx,sy-b.by)<=b.r+6);
+  if(hitBadge){
+    if(badgeHover.g!==hitBadge){
+      badgeHover={g:hitBadge,px:hitBadge.bx,py:hitBadge.by};
+      cv.style.cursor='pointer'; render();
+    }else drawHud();
+  } else {
+    if(badgeHover.g){badgeHover={g:null,px:0,py:0};cv.style.cursor=tool==='select'?'default':'crosshair';render();}
+    else if(nh.kind!==hover.kind||nh.id!==hover.id){hover=nh;render();}
+    else drawHud();
+  }
 });
 window.addEventListener('mouseup',()=>{
   if(dragNode&&dragNode.moved)snapshot();
@@ -2076,6 +2427,7 @@ cv.addEventListener('wheel',ev=>{
   const after=S2W(sx,sy);
   V.tx+=(after.x-before.x)*V.sc; V.ty+=(after.y-before.y)*V.sc;
   render();
+  if(M.view.map)prewarmTiles();
 },{passive:false});
 
 window.addEventListener('keydown',ev=>{
@@ -2104,6 +2456,7 @@ window.addEventListener('keydown',ev=>{
              o:'insuloop',z:'insz'};
   if(map[k]){tool=map[k];endDraw();syncRail();}
   if(k==='l'){M.view.labels=!M.view.labels;render();syncRail();}
+  if(k==='k'){M.view.angles=!M.view.angles;render();syncRail();}
 });
 
 /* ============================ 6. UI ===================================== */
@@ -2163,7 +2516,7 @@ document.addEventListener('change',ev=>{
 });
 document.addEventListener('input',ev=>{
   const el=ev.target.closest('[data-bind]');
-  if(el&&el.type==='number'){const v=parseFloat(el.value);
+  if(el&&(el.type==='number'||el.type==='range')){const v=parseFloat(el.value);
     if(!isNaN(v)){setPath(M,el.dataset.bind,v);onModelChange(true);}}
 });
 function onModelChange(light){
@@ -2192,7 +2545,7 @@ function buildProjectPane(){
     rowF('Max design temperature','Tmax \u2014 \u00b0C',numF('ops.Tmax',5,-20,160))+
     rowF('Min design temperature','Tmin \u2014 \u00b0C',numF('ops.Tmin',5,-20,160))+
     rowF('Installation temperature','Tins at backfill \u2014 \u00b0C',numF('ops.Tins',5,-20,60))+
-    rowF('Design pressure','p \u2014 MPa',numF('ops.pDesign',0.1,0,4))+
+    rowF('Design pressure','p \u2014 bar',numF('ops.pDesign',1,0,40))+
     rowF('Installation method','',
       '<div class="seg"><button data-set="ops.install|cold">Cold laid</button>'+
       '<button data-set="ops.install|preheat">Pre-heat</button>'+
@@ -2257,6 +2610,8 @@ function buildProjectPane(){
     '<button class="btn" data-toggle="view.grid">Grid</button>'+
     '<button class="btn" data-toggle="view.pads">Foam pads</button>'+
     '<button class="btn" data-toggle="view.moves">Movements</button></div>'+
+    '<div class="row" style="margin-top:8px"><label>Map opacity<small>when map is active</small></label>'+
+    '<input class="fld" type="range" min="0.2" max="1" step="0.05" data-bind="view.mapOpacity" value="0.85" style="text-align:left"></div>'+
     '<div class="btn2" style="margin-top:6px"><button class="btn" id="btnFit">Zoom to fit</button>'+
     '<button class="btn warn" id="btnClearAll">Clear network</button></div>');
   $('pProject').innerHTML=html;
@@ -2264,6 +2619,8 @@ function buildProjectPane(){
   $('applyAllSer').onclick=()=>{Object.values(M.edges).forEach(e=>e.series=M.def.series);snapshot();run();toast('Series applied to every pipe');};
   $('btnFit').onclick=fit;
   $('btnClearAll').onclick=()=>{if(confirm('Delete the whole sketch?')){M.nodes={};M.edges={};snapshot();run();fit();}};
+  /* sync map button state */
+  const mapBtn=$('btnMap'); if(mapBtn)mapBtn.classList.toggle('on',!!M.view.map);
   document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{
     const p=b.dataset.toggle;setPath(M,p,!getPath(M,p));render();syncProject();syncRail();});
   document.querySelectorAll('#cSoil [data-bind]').forEach(el=>
@@ -2282,6 +2639,8 @@ function syncProject(){
     let cur=getPath(M,p);
     b.classList.toggle('on',String(cur)===v);
   });
+  /* sync map button state */
+  const mapBtn=$('btnMap'); if(mapBtn)mapBtn.classList.toggle('on',!!M.view.map);
   document.querySelectorAll('[data-toggle]').forEach(b=>
     b.classList.toggle('acc',!!getPath(M,b.dataset.toggle)));
   if(!R)return;
@@ -2314,6 +2673,16 @@ function buildElementPane(){
   }
   if(sel.kind==='node')el.innerHTML=nodePane(M.nodes[sel.id]);
   else el.innerHTML=edgePane(M.edges[sel.id]);
+  const lenInput2=$('elLen');
+  if(lenInput2)lenInput2.onchange=()=>{
+    const v=parseFloat(lenInput2.value); if(!v||v<0.1)return;
+    const ed=M.edges[sel.id]; if(!ed)return;
+    const A=M.nodes[ed.a],B=M.nodes[ed.b]; if(!A||!B)return;
+    const cur=Math.hypot(B.x-A.x,B.y-A.y)||1;
+    const ux=(B.x-A.x)/cur, uy=(B.y-A.y)/cur;
+    B.x=A.x+ux*v; B.y=A.y+uy*v;
+    snapshot();run();buildElementPane();
+  };
   const del=$('elDel'); if(del)del.onclick=()=>{
     if(sel.kind==='node')delNode(sel.id);else delEdge(sel.id);
     select(null,null);snapshot();run();};
@@ -2420,7 +2789,10 @@ function edgePane(e){
   const psTagBadge=pstag?'<span style="font-family:var(--mono);font-size:10px;color:var(--accent-text);'+
     'background:var(--panel2);border:1px solid var(--line);padding:1px 5px;border-radius:3px;margin-left:6px">'+
     pstag+'</span>':'';
-  let out=cardF('eA','Pipe section'+psTagBadge,'L = '+fmt(edgeLen(e),1)+' m',
+  const curLen=edgeLen(e);
+  let out=cardF('eA','Pipe section'+psTagBadge,'',
+    '<div class="row"><label>Pipe length<small>metres \u2014 edit to resize</small></label>'+
+    '<input class="fld" id="elLen" type="number" min="0.1" step="0.5" value="'+fmt(curLen,1)+'" style="font-size:13px;font-weight:700"></div>'+
     rowF('Nominal size','',selF(b+'.dn',dnOpts),true)+
     rowF('Insulation series','',
       '<div class="seg"><button data-set="'+b+'.series|1">1</button>'+
@@ -2626,7 +2998,7 @@ $('btnNew').onclick=()=>{
   if(Object.keys(M.edges).length>0&&!confirm('Start a new project? Unsaved changes will be lost.'))return;
   M=blankModel(); M.meta.name='Untitled network'; $('projName').value=M.meta.name;
   _hudBuilt=false;
-  buildProjectPane(); snapshot(); run(); fit();
+  buildProjectPane(); snapshot(); run(); fit(); syncMapUI();
   toast('New project started');
 };
 $('btnSave').onclick=saveFile;
@@ -2638,11 +3010,17 @@ $('fileIn').onchange=ev=>{
     const o=JSON.parse(rd.result);
     M=Object.assign(blankModel(),o);M.z={p:[],i:-1};
     $('projName').value=M.meta.name||'Network';
-    buildProjectPane();snapshot();run();fit();toast('Opened '+f.name);
+    buildProjectPane();snapshot();run();fit();syncMapUI();toast('Opened '+f.name);
   }catch(e){toast('Could not read that file');}};
   rd.readAsText(f); ev.target.value='';
 };
 $('projName').onchange=e=>{M.meta.name=e.target.value;};
+$('btnMap').onclick=()=>{
+  if(!M.view.map&&!M.geo){openAnchorModal();return;}
+  M.view.map=!M.view.map; syncMapUI();
+  if(M.view.map)prewarmTiles();
+};
+$('btnAnchor').onclick=()=>openAnchorModal();
 function csv(kind){
   let rows=[];
   if(kind==='sections'){
@@ -2663,6 +3041,78 @@ function csv(kind){
 }
 
 /* ---- MODALS ----------------------------------------------------------- */
+
+function openAnchorModal(){
+  const noGeo=!M.geo;
+  const hasNodes=Object.keys(M.nodes).length>0;
+  modal('Anchor sketch to real-world location',`
+<p style="margin-bottom:12px;color:var(--dim)">Setting an anchor lets the OSM map align with your sketch.
+Pick a node to anchor (or use the sketch origin) then enter a location.</p>
+<div class="row w" style="margin-bottom:8px">
+  <label>Anchor sketch point<small>world coords in metres</small></label>
+  <div style="display:flex;gap:6px">
+    <input class="fld" id="ancX" type="number" step="0.5" value="${M.geo?M.geo.wx:0}" style="width:80px" placeholder="X">
+    <input class="fld" id="ancY" type="number" step="0.5" value="${M.geo?M.geo.wy:0}" style="width:80px" placeholder="Y">
+  </div>
+</div>
+<div class="row w" style="margin-bottom:14px">
+  <label>Corresponds to<small>search or enter lat, lon</small></label>
+  <div style="display:flex;gap:6px;flex:1">
+    <input class="fld" id="ancSearch" type="text" value="${M.geo?M.geo.lat.toFixed(5)+', '+M.geo.lon.toFixed(5):''}"
+      placeholder="town name or lat, lon" style="flex:1;text-align:left">
+    <button class="btn acc" id="ancGo" style="width:auto;padding:5px 10px">Search</button>
+  </div>
+</div>
+<div id="ancResult" style="font-size:11px;color:var(--dim);min-height:18px;margin-bottom:10px"></div>
+<div class="note">After anchoring, the OSM map will align to your sketch. Pan and zoom to check it looks right, then click 
+<b>Anchor here</b> on a different node to adjust. The anchor is saved with the project file.</div>
+`,
+`<button class="btn" onclick="closeModal()">Cancel</button>
+ <button class="btn warn" id="ancClear" style="${M.geo?'':'display:none'}">Clear anchor</button>
+ <button class="btn acc" id="ancSet">Set anchor</button>`);
+
+  const res=$('ancResult');
+  let pendingLat=M.geo?M.geo.lat:null, pendingLon=M.geo?M.geo.lon:null;
+
+  $('ancGo').onclick=async()=>{
+    const q=$('ancSearch').value.trim(); if(!q)return;
+    res.textContent='Searching\u2026';
+    /* check if it's already a lat,lon pair */
+    const parts=q.split(/[,\s]+/);
+    if(parts.length===2&&!isNaN(parseFloat(parts[0]))&&!isNaN(parseFloat(parts[1]))){
+      pendingLat=parseFloat(parts[0]); pendingLon=parseFloat(parts[1]);
+      res.textContent='\u2713 '+pendingLat.toFixed(5)+', '+pendingLon.toFixed(5);
+    } else {
+      try{
+        const r=await geocode(q);
+        if(!r){res.textContent='Not found \u2014 try a more specific name or enter lat, lon directly.';return;}
+        pendingLat=r.lat; pendingLon=r.lon;
+        $('ancSearch').value=pendingLat.toFixed(5)+', '+pendingLon.toFixed(5);
+        res.textContent='\u2713 '+r.name.slice(0,90);
+      }catch(e){res.textContent='Network error \u2014 enter lat, lon manually.';}
+    }
+  };
+  $('ancSet').onclick=()=>{
+    if(pendingLat===null){res.textContent='Please search for a location first.';return;}
+    const wx=parseFloat($('ancX').value)||0, wy=parseFloat($('ancY').value)||0;
+    setGeoAnchor(pendingLat,pendingLon,wx,wy);
+    M.view.map=true; syncMapUI();
+    closeModal(); toast('Anchor set \u2014 OSM map enabled');
+  };
+  if($('ancClear'))$('ancClear').onclick=()=>{M.geo=null;updateGeoChip();M.view.map=false;syncMapUI();closeModal();toast('Anchor cleared');};
+
+  $('ancSearch').onkeydown=e=>{if(e.key==='Enter')$('ancGo').click();};
+}
+
+function syncMapUI(){
+  const btn=$('btnMap'), attr=$('tileAttr'), ancBtn=$('btnAnchor');
+  if(btn){btn.classList.toggle('on',!!M.view.map);}
+  if(attr){attr.className='tileattr'+(M.view.map?' on':'');}
+  if(ancBtn){ancBtn.style.display=M.geo?'':'none';}
+  updateGeoChip();
+  render();
+}
+
 function modal(title,body,footer){
   $('modal').innerHTML='<header><h3>'+title+'</h3><button class="x" onclick="closeModal()">\u00d7</button></header>'+
     '<div class="mb">'+body+'</div>'+(footer?'<footer>'+footer+'</footer>':'');
@@ -3046,7 +3496,7 @@ function report(){
     'Installation method':{cold:'Cold laid, no pre-stress',preheat:'Heat pre-stressed in open trench',
       ecomp:'One-shot compensators (E-comp)'}[M.ops.install],
     'Reference temperature':fmt(th.Tref,0)+' \u00b0C',
-    'Design pressure':M.ops.pDesign+' MPa'})+
+    'Design pressure':M.ops.pDesign+' bar ('+fmt(M.ops.pDesign/10,2)+' MPa)'})+
   '<h3>Soil and trench</h3>'+dl({
     'Surround':SOILS[M.soil.preset].name,'Unit weight \u03b3':M.soil.g+' kN/m\u00b3',
     'K\u2080':M.soil.K0,'\u03bc (casing/soil)':M.soil.mu,
@@ -3138,6 +3588,7 @@ $('btnReport').onclick=report;
 window.addEventListener('resize',resize);
 buildRail();
 buildProjectPane();
+syncMapUI();
 TEMPLATES[1].build();
 M.meta.name='Example \u2014 distribution street';
 $('projName').value=M.meta.name;
