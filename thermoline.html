@@ -2129,8 +2129,11 @@ function buildDetour(kind,fromId,dir,opts,flip){
     const p3=addNode(M.nodes[p2].x-perp.x*depth,M.nodes[p2].y-perp.y*depth,'auto');
     addEdge(p2,p3,opts);
     /* tag all internal nodes so auto-resize can identify them.
-       Also store the original pipe dir/perp on the entry node for clean resize. */
-    M.nodes[p1]._loop=true; M.nodes[p2]._loop=true; M.nodes[p3]._loop=true;
+       _loopEntry links each interior node back to its entry so we never
+       accidentally walk into an adjacent loop's nodes.                  */
+    M.nodes[p1]._loop=true; M.nodes[p1]._loopEntry=fromId;
+    M.nodes[p2]._loop=true; M.nodes[p2]._loopEntry=fromId;
+    M.nodes[p3]._loop=true; M.nodes[p3]._loopEntry=fromId;
     M.nodes[fromId]._loopDir=dir; M.nodes[fromId]._loopPerp=perp;
     M.nodes[p3]._loopExit=true;
     return p3;
@@ -2147,29 +2150,46 @@ function buildDetour(kind,fromId,dir,opts,flip){
    Walks nodes on the loop and expands legs that have PAD-1 pending.           */
 function autoResizeLoopAfterInsert(tipId, kind){
   if(!R)return;
-  /* Find the entry node (the split node that has _loopDir stored on it).
-     Always start the search from tipId and walk back. */
+
+  /* Walk back from tipId to find the entry node for THIS loop only.
+     The entry node has _loopDir AND is connected (directly or via _loop chain)
+     to tipId. We walk up to 6 hops along _loop-tagged nodes. */
   let entryId=null;
-  const allIds=[tipId,...Object.keys(M.nodes)];
-  for(const id of allIds){if(M.nodes[id]&&M.nodes[id]._loopDir){entryId=id;break;}}
+  const visited=new Set();
+  let cur=tipId;
+  for(let i=0;i<8;i++){
+    if(M.nodes[cur]&&M.nodes[cur]._loopDir){entryId=cur;break;}
+    visited.add(cur);
+    /* step to a neighbour that is a _loop node (interior of this loop) */
+    const next=edgesAt(cur)
+      .map(e=>other(e,cur))
+      .find(id=>M.nodes[id]&&M.nodes[id]._loop&&!visited.has(id));
+    if(!next)break;
+    cur=next;
+  }
   if(!entryId)return;
   const entry=M.nodes[entryId];
   const dir=entry._loopDir, perp=entry._loopPerp;
   if(!dir||!perp)return;
 
-  /* Collect the ordered chain of _loop nodes: entry → p1 → p2 → exit */
+  /* Collect the chain for THIS loop only: walk from entry through directly
+     connected _loop nodes that belong to this entry (via _loopEntry tag). */
   const chain=[entryId];
-  const loopIds=new Set(Object.keys(M.nodes).filter(id=>M.nodes[id]._loop));
-  let cur=entryId;
+  const seen=new Set([entryId]);
+  let walker=entryId;
   for(let i=0;i<6;i++){
-    const next=edgesAt(cur).map(e=>other(e,cur))
-      .find(id=>loopIds.has(id)&&!chain.includes(id));
-    if(!next)break; chain.push(next); cur=next;
+    const next=edgesAt(walker)
+      .map(e=>other(e,walker))
+      .find(id=>M.nodes[id]&&M.nodes[id]._loop&&
+                M.nodes[id]._loopEntry===entryId&&!seen.has(id));
+    if(!next)break;
+    chain.push(next);
+    seen.add(next);
+    walker=next;
   }
-  /* Need at least p1, p2, p3 */
-  if(chain.length<4)return; /* entry + 3 interior */
+  if(chain.length<4)return; /* need entry + p1 + p2 + p3 */
 
-  /* Determine required depth from pad analysis */
+  /* Determine required dimensions from pad analysis */
   let reqDepth=0, reqWidth=0;
   for(const nid of chain){
     const r=R.NR[nid]; if(!r||!r.pad)continue;
@@ -2182,29 +2202,23 @@ function autoResizeLoopAfterInsert(tipId, kind){
   }
   if(reqDepth<=0&&reqWidth<=0)return;
 
-  /* Use initial dimensions if analysis says no expansion needed */
   const p1n=M.nodes[chain[1]], p2n=M.nodes[chain[2]];
   const curDepth=Math.abs(perp.x*(p1n.x-entry.x)+perp.y*(p1n.y-entry.y));
   const curWidth=Math.abs(dir.x*(p2n.x-p1n.x)+dir.y*(p2n.y-p1n.y));
   const newDepth=Math.max(curDepth,reqDepth);
-  /* Width must be >= F from each corner so pads fit on the crown legs.
-     Each crown bend sees the F derived from movement along that crown leg.
-     Use reqWidth (from PAD-3) OR reqDepth (pads from corners extend inward) */
   const newWidth=Math.max(curWidth,reqWidth,reqDepth);
   if(Math.abs(newDepth-curDepth)<0.05&&Math.abs(newWidth-curWidth)<0.05)return;
 
-  /* Rebuild the rectangle exactly, preserving entry position */
+  /* Rebuild the rectangle preserving entry position */
   M.nodes[chain[1]].x=entry.x+perp.x*newDepth;
   M.nodes[chain[1]].y=entry.y+perp.y*newDepth;
   M.nodes[chain[2]].x=M.nodes[chain[1]].x+dir.x*newWidth;
   M.nodes[chain[2]].y=M.nodes[chain[1]].y+dir.y*newWidth;
   M.nodes[chain[3]].x=entry.x+dir.x*newWidth;
   M.nodes[chain[3]].y=entry.y+dir.y*newWidth;
-  /* If there are more nodes (shouldn't be for a basic loop) leave them */
-  snapshot();run();
-  /* Second pass: after analysis the pad zones are re-computed with the new
-     geometry. If they still don't fit (rare — happens when dL was larger
-     than estimated), expand depth and rebuild again. */
+  run();   /* no snapshot here — caller already snapshotted after buildDetour */
+
+  /* Second pass: if pads still don't fit after the first resize, expand once more */
   if(R){
     let maxF=0;
     for(const nid of chain){
@@ -2218,7 +2232,7 @@ function autoResizeLoopAfterInsert(tipId, kind){
       M.nodes[chain[2]].y=M.nodes[chain[1]].y+dir.y*Math.max(newWidth,maxF*0.9);
       M.nodes[chain[3]].x=entry.x+dir.x*Math.max(newWidth,maxF*0.9);
       M.nodes[chain[3]].y=entry.y+dir.y*Math.max(newWidth,maxF*0.9);
-      snapshot();run();
+      run();
     }
   }
 }
