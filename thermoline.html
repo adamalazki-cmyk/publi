@@ -1877,7 +1877,7 @@ function drawHud(){
   const g=document.getElementById('zGrid');
   if(g)g.textContent='grid '+step+' m';
   br.innerHTML='<span class="chip">x '+mouse.wx.toFixed(1)+' &nbsp; y '+mouse.wy.toFixed(1)+' m</span>'+
-    (tool==='route'?
+    (( tool==='route'||tool==='branch')?
       ' <span class="dnchip" id="dnChip" onclick="toggleDnPicker()" title="Change pipe diameter (D)">'+
       'DN'+M.def.dn+'</span>':
       '');
@@ -1931,7 +1931,7 @@ const TOOLS=[
    svg:'<path d="M4 3l7 17 2.5-6.5L20 11z"/>'},
  {id:'route',  k:'R', name:'Route', sub:'click to place · D for diameter',
    svg:'<path d="M3 20h6l4-8h8"/><circle cx="3" cy="20" r="1.6"/><circle cx="21" cy="12" r="1.6"/>'},
- {id:'branch', k:'B', name:'Branch', sub:'tee off a pipe',
+ {id:'branch', k:'B', name:'Branch', sub:'tee off a pipe · D for diameter',
    svg:'<path d="M3 6h18M12 6v14"/>'},
  {id:'erase',  k:'X', name:'Erase', sub:'node or pipe',
    svg:'<path d="M4 20h16M6 16L16 6l4 4L10 20z"/>'},
@@ -1949,7 +1949,7 @@ const TOOLS=[
    svg:'<circle cx="12" cy="12" r="7"/><path d="M9 15l6-6"/>'},
  {sep:1},
  {hd:'Insert expansion'},
- {id:'insuloop',k:'O', name:'U-loop', sub:'click a pipe · Shift flips side',
+ {id:'insuloop',k:'U', name:'U-loop', sub:'click a pipe · Shift flips side',
    svg:'<path d="M5 20V10a5 5 0 0110 0v10"/><path d="M3 20h4M13 20h4"/>'},
  {id:'insz',    k:'Z', name:'Z-offset', sub:'click a pipe · Shift flips side',
    svg:'<path d="M4 7h7v10h9"/>'},
@@ -2260,17 +2260,23 @@ function snapFrom(ax,ay,wx,wy,ev,axisDir){
   let dx=wx-ax,dy=wy-ay,L=Math.hypot(dx,dy);
   if(L<1e-6)return{x:wx,y:wy};
   let a=Math.atan2(dy,dx)*180/Math.PI;
-  const inc=ev&&ev.shiftKey?90:15;
-  /* If we have a parent pipe axis, rotate the angle space so the axis
-     direction is 0 deg, snap there, then rotate back. This makes
-     perpendicular (90 deg) and along (0/180) the natural snap points. */
   if(axisDir){
     const axisAng=Math.atan2(axisDir.y,axisDir.x)*180/Math.PI;
-    let rel=((a-axisAng)%360+360)%360;
-    if(rel>180)rel-=360;
-    rel=Math.round(rel/inc)*inc;
-    a=axisAng+rel;
+    if(draw.branchDir){
+      /* Branch first segment: lock to exactly 90° from the parent pipe.
+         Choose the perpendicular side closest to where the cursor is.   */
+      let rel=((a-axisAng)%360+360)%360;
+      if(rel>180)rel-=360;
+      a=axisAng+(rel>=0?90:-90);
+    } else {
+      const inc=ev&&ev.shiftKey?90:15;
+      let rel=((a-axisAng)%360+360)%360;
+      if(rel>180)rel-=360;
+      rel=Math.round(rel/inc)*inc;
+      a=axisAng+rel;
+    }
   } else {
+    const inc=ev&&ev.shiftKey?90:15;
     a=Math.round(a/inc)*inc;
   }
   const g=Math.max(0.5,niceStep(58)/10);
@@ -2353,7 +2359,7 @@ cv.addEventListener('mousedown',ev=>{
     render();return;
   }
   const sn=snapPoint(w.x,w.y,ev);
-  if(tool==='route'){placePoint(sn,ev);render();return;}
+  if(tool==='route'||(tool==='branch'&&draw.active)){placePoint(sn,ev);render();return;}
   if(tool==='branch'){
     const he=hitEdge(sx,sy,11);
     if(he){
@@ -2366,7 +2372,7 @@ cv.addEventListener('mousedown',ev=>{
         const L2=Math.hypot(B2.x-A2.x,B2.y-A2.y)||1;
         draw.branchDir={x:(B2.x-A2.x)/L2,y:(B2.y-A2.y)/L2};
       } else draw.branchDir=null;
-      beginDraw(nid);tool='route';syncRail();snapshot();run();
+      beginDraw(nid);snapshot();run();
     } else toast('Click on an existing pipe to branch from it');
     return;
   }
@@ -2403,7 +2409,39 @@ window.addEventListener('mousemove',ev=>{
   if(pan){V.tx=pan.tx+(sx-pan.sx);V.ty=pan.ty+(sy-pan.sy);render();return;}
   if(dragNode){
     const n=M.nodes[dragNode.id];
-    const sn=snapPoint(w.x+dragNode.ox,w.y+dragNode.oy,ev);
+    let sn=snapPoint(w.x+dragNode.ox,w.y+dragNode.oy,ev);
+    /* Perpendicular constraint: if this node is a branch end (degree-1,
+       neighbour is a tee with ≥3 edges, and the branch is NOT collinear
+       with the main pipe), constrain drag to the perpendicular axis.    */
+    const myEdges=edgesAt(dragNode.id);
+    if(myEdges.length===1){
+      const teeId=other(myEdges[0],dragNode.id);
+      const teeEdges=edgesAt(teeId);
+      if(teeEdges.length>=3){
+        const mainEdges=teeEdges.filter(e=>other(e,teeId)!==dragNode.id);
+        const tee=M.nodes[teeId];
+        if(mainEdges.length>=1&&tee){
+          /* Use one main edge direction — averaging cancels on a straight tee */
+          const firstFar=M.nodes[other(mainEdges[0],teeId)];
+          if(firstFar){
+            let mx=firstFar.x-tee.x, my=firstFar.y-tee.y;
+            const mL=Math.hypot(mx,my)||1; mx/=mL; my/=mL;
+            /* branch direction from tee to this node */
+            const bx=n.x-tee.x, by=n.y-tee.y;
+            const bL=Math.hypot(bx,by)||1;
+            const dot=Math.abs(bx/bL*mx+by/bL*my);
+            /* constrain only if branch is NOT collinear with main (dot < 0.5) */
+            if(dot<0.5){
+              const px=-my, py=mx;
+              const dx=sn.x-tee.x, dy=sn.y-tee.y;
+              const proj=dx*px+dy*py;
+              const clampedProj=Math.abs(proj)<0.1?(proj<0?-0.1:0.1):proj;
+              sn={x:tee.x+px*clampedProj,y:tee.y+py*clampedProj};
+            }
+          }
+        }
+      }
+    }
     n.x=sn.x;n.y=sn.y;dragNode.moved=true;run();return;
   }
   if(sx<0||sy<0||sx>V.w||sy>V.h){return;}
@@ -2496,14 +2534,14 @@ window.addEventListener('keydown',ev=>{
   }
   if(ev.key==='Home'){fit();return;}
   /* D key toggles the DN picker while in route mode */
-  if(k==='d'&&tool==='route'){toggleDnPicker();return;}
+  if(k==='d'&&(tool==='route'||tool==='branch')){toggleDnPicker();return;}
   if(draw.active&&/^[0-9.]$/.test(ev.key)){showLen();lenInput.value=ev.key;return;}
   if((k==='o'||k==='z')&&draw.active){
     insertDetourWhileDrawing(k==='o'?'uloop':'zoffset',ev);
     return;
   }
   const map={v:'select',r:'route',b:'branch',x:'erase',a:'anchor',f:'free',e:'ecomp',w:'valve',
-             o:'insuloop',z:'insz'};
+             u:'insuloop',o:'insuloop',z:'insz'};
   if(map[k]){tool=map[k];endDraw();hideDnPicker();syncRail();}
   if(k==='l'){M.view.labels=!M.view.labels;render();syncRail();}
   if(k==='k'){M.view.angles=!M.view.angles;render();syncRail();}
@@ -3634,13 +3672,11 @@ $('btnReport').onclick=report;
 window.addEventListener('resize',resize);
 buildRail();
 buildProjectPane();
-TEMPLATES[1].build();
-M.meta.name='Example \u2014 distribution street';
+M.meta.name='Untitled network';
 $('projName').value=M.meta.name;
 snapshot();
 resize();
 run();
-fit();
 setTimeout(()=>toast('Press R to draw, B to branch off a pipe \u2014 see Guide for the full reference'),700);
 </script>
 </body>
