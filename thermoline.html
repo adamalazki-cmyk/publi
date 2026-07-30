@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>THERMOLINE — EN 13941 route stress screening</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#ffffff; --stage:#f5f5f1; --panel:#ffffff; --panel2:#f1f1ed; --panel3:#e6e6e0;
@@ -14,12 +11,19 @@
   --accent:#c4d600; --accent-dk:#a6b800; --accent-ink:#12140a; --accent-text:#71790a; --violet:#12140a;
   --supply:#d6d6cc; --ret:#12140a;
   --ok:#3f8a2e; --watch:#a8790a; --high:#c1531c; --bad:#c1291f; --info:#8a9600;
-  --r:4px; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:4px;
+  --mono:"Consolas","Segoe UI Mono",ui-monospace,Menlo,monospace;
+  --sans:"Segoe UI","Segoe UI Web",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  /* Type scale — sized ~5-8% down from a literal px-for-px port of the old
+     IBM-Plex-based values, since Segoe UI's x-height reads visibly larger
+     at the same nominal size. Keeps overall density the same. */
+  --fs-2xs:8px;   --fs-xs:8.5px;  --fs-sm:9px;    --fs-base:9.5px;
+  --fs-md:10px;   --fs-lg:10.5px; --fs-xl:11px;   --fs-2xl:11.5px;
+  --fs-body:12.5px; --fs-h3:13.5px; --fs-h2:17px; --fs-h1:18px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:var(--fs-body);overflow:hidden;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -33,14 +37,14 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .stagewrap{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--stage);border-left:1px solid var(--line);border-right:1px solid var(--line)}
 
 /* ---------- topbar ---------- */
-.topbar{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.topbar{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
 .brand{display:flex;align-items:baseline;gap:8px;padding-right:14px;border-right:1px solid var(--line)}
-.brand b{font-size:14px;letter-spacing:.14em;font-weight:700}
-.brand span{font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.08em}
-.projname{background:transparent;border:1px solid transparent;padding:4px 7px;border-radius:var(--r);width:230px;font-weight:500}
+.brand b{font-size:var(--fs-h3);letter-spacing:.14em;font-weight:700}
+.brand span{font-family:var(--mono);font-size:var(--fs-base);color:var(--dim2);letter-spacing:.08em}
+.projname{background:transparent;border:1px solid transparent;padding:4px 7px;border-radius:var(--r);width:230px;min-width:110px;flex-shrink:1;font-weight:500}
 .projname:hover{border-color:var(--line2)} .projname:focus{border-color:var(--accent);background:var(--bg);outline:none}
-.tbgroup{display:flex;gap:3px;margin-left:auto}
-.tb{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:5px 10px;cursor:pointer;color:var(--dim);font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tbgroup{display:flex;gap:3px;margin-left:auto;flex-shrink:0}
+.tb{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:5px 10px;cursor:pointer;color:var(--dim);font-size:var(--fs-2xl);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .tb:hover{background:var(--panel3);color:var(--text);border-color:var(--line2)}
 .tb.pri{background:var(--accent);border-color:var(--accent-dk);color:var(--accent-ink);font-weight:600}
 .tb.pri:hover{background:var(--accent-dk)}
@@ -53,91 +57,104 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .tool.on{background:var(--text);color:var(--accent);border-left-color:var(--accent)}
 .tool svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .tool-lbl{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
-.tool-lbl b{font-size:11.5px;font-weight:600;color:inherit;white-space:nowrap}
-.tool-lbl i{font-family:var(--mono);font-size:9px;font-style:normal;color:var(--dim2)}
+.tool-lbl b{font-size:var(--fs-2xl);font-weight:600;color:inherit;white-space:nowrap}
+.tool-lbl i{font-family:var(--mono);font-size:var(--fs-sm);font-style:normal;color:var(--dim2)}
 .tool.on .tool-lbl i{color:rgba(196,214,0,.75)}
 .railsep{height:1px;background:var(--line);margin:5px 8px}
-.rail-hd{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim2);font-weight:700;padding:12px 12px 4px;font-family:var(--mono)}
+.rail-hd{font-size:var(--fs-xs);letter-spacing:.1em;text-transform:uppercase;color:var(--dim2);font-weight:700;padding:12px 12px 4px;font-family:var(--mono)}
 /* tooltip suppressed — tool names now shown inline */
 
+.dnpicker{position:absolute;z-index:40;background:#111111;border:1px solid #3a3a30;
+  border-radius:6px;padding:8px;display:none;flex-direction:column;gap:6px;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:auto;bottom:44px;left:50%;
+  transform:translateX(-50%)}
+.dnpicker.on{display:flex}
+.dnpicker-label{font-family:"Segoe UI",system-ui,sans-serif;font-size:9px;
+  color:#8a8a78;text-transform:uppercase;letter-spacing:.08em;text-align:center}
+.dnpicker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.dnbtn{background:#1e1e18;border:1px solid #3a3a30;border-radius:3px;
+  padding:5px 4px;cursor:pointer;font-family:"Consolas","Segoe UI Mono",monospace;
+  font-size:9.5px;color:#c8c8bc;text-align:center;transition:background .1s,color .1s,border-color .1s}
+.dnbtn:hover{background:#2a2a20;color:#ffffff;border-color:#5a5a42}
+.dnbtn.cur{background:#c4d600;color:#12140a;border-color:#c4d600;font-weight:700}
+.dnchip{background:#1e1e18;border:1px solid #3a3a30;border-radius:3px;
+  padding:3px 8px;cursor:pointer;font-family:"Consolas","Segoe UI Mono",monospace;
+  font-size:9.5px;color:#c8c8bc;display:inline-flex;align-items:center;gap:5px;
+  transition:background .1s,border-color .1s;white-space:nowrap;user-select:none;
+  pointer-events:auto}
+.dnchip:hover{background:#2a2a20;border-color:#5a5a42;color:#ffffff}
+.dnchip svg{flex-shrink:0}
 /* ---------- map controls ---------- */
-.mapctl{position:absolute;top:9px;right:11px;display:flex;flex-direction:column;gap:5px;z-index:20;pointer-events:auto}
-.mapbtn{background:#111111dd;border:1px solid #3a3a30;border-radius:var(--r);color:#f0f0e8;padding:5px 10px;cursor:pointer;font-size:11px;font-family:var(--sans);display:flex;align-items:center;gap:6px;white-space:nowrap}
-.mapbtn:hover{background:#1e1e18;border-color:#6a6a58}
-.mapbtn.on{background:var(--accent);border-color:var(--accent-dk);color:var(--accent-ink);font-weight:700}
-.mapbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7;flex-shrink:0}
-.tileattr{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.84);border-radius:2px;padding:1px 5px;font-size:9px;color:#444;pointer-events:none;z-index:10;display:none}
-.tileattr.on{display:block}
-.georef-chip{position:absolute;top:46px;right:11px;background:#111111dd;border:1px solid #3a3a30;border-radius:var(--r);padding:6px 10px;font-family:var(--mono);font-size:10px;color:#c4d600;z-index:20;pointer-events:none;display:none}
-.georef-chip.on{display:block}
 
 /* ---------- canvas ---------- */
 #cv{flex:1;display:block;width:100%;cursor:crosshair}
-.hud{position:absolute;pointer-events:none;font-family:var(--mono);font-size:10.5px;color:var(--text)}
+.hud{position:absolute;pointer-events:none;font-family:var(--mono);font-size:var(--fs-lg);color:var(--text)}
 .hud.tl{top:9px;left:11px;display:flex;gap:6px;flex-direction:column;align-items:flex-start}
 .hud.br{bottom:8px;right:11px;text-align:right}
 .chip{background:#1a1a16;border:1px solid #3a3a30;border-radius:var(--r);padding:3px 8px;pointer-events:auto;color:#f0f0e8}
 .zoomctl{display:flex;align-items:center;gap:2px;background:#1a1a16;border:1px solid #3a3a30;border-radius:var(--r);overflow:hidden;pointer-events:auto}
-.zoomctl button{background:transparent;border:none;color:#ffffff;padding:3px 7px;cursor:pointer;font-family:var(--mono);font-size:11px;line-height:1}
+.zoomctl button{background:transparent;border:none;color:#ffffff;padding:3px 7px;cursor:pointer;font-family:var(--mono);font-size:var(--fs-xl);line-height:1}
 .zoomctl button:hover{background:rgba(255,255,255,.15)}
-.zoomctl select{background:transparent;border:none;color:#ffffff;font-family:var(--mono);font-size:11px;padding:3px 4px;cursor:pointer;outline:none;-webkit-appearance:none;min-width:84px;text-align:center}
+.zoomctl select{background:transparent;border:none;color:#ffffff;font-family:var(--mono);font-size:var(--fs-xl);padding:3px 4px;cursor:pointer;outline:none;-webkit-appearance:none;min-width:84px;text-align:center}
 .zoomctl select option{background:#111111;color:#ffffff}
 .zoomctl .zdiv{width:1px;background:rgba(255,255,255,.18);align-self:stretch}
-.legend{position:absolute;left:11px;bottom:8px;background:#1a1a16;border:1px solid #3a3a30;border-radius:var(--r);padding:7px 9px;font-family:var(--mono);font-size:10px;color:#d8d8cc}
+.legend{position:absolute;left:11px;bottom:8px;background:#1a1a16;border:1px solid #3a3a30;border-radius:var(--r);padding:7px 9px;font-family:var(--mono);font-size:var(--fs-md);color:#d8d8cc}
 .legend .ramp{display:flex;height:7px;width:168px;border-radius:2px;overflow:hidden;margin:5px 0 3px}
 .legend .ramp i{flex:1}
 .legend .lr{display:flex;justify-content:space-between;width:168px;color:#c8c8bc}
-.legend h6{font-size:9px;letter-spacing:.1em;color:#b0b0a0;font-weight:600;text-transform:uppercase}
+.legend h6{font-size:var(--fs-sm);letter-spacing:.1em;color:#b0b0a0;font-weight:600;text-transform:uppercase}
 .lkeys{display:grid;grid-template-columns:auto auto;gap:2px 10px;margin-top:7px;padding-top:6px;border-top:1px solid var(--line)}
 .lkeys{color:#c8c8bc}.lkeys span{display:flex;align-items:center;gap:5px}
 .lkeys b{width:8px;height:8px;border-radius:2px;display:inline-block}
-.lenbox{position:absolute;background:#ffffff;border:1.5px solid var(--accent-dk);border-radius:var(--r);padding:3px 6px;font-family:var(--mono);font-size:11.5px;width:104px;z-index:30;display:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.lenbox{position:absolute;background:#ffffff;border:1.5px solid var(--accent-dk);border-radius:var(--r);padding:3px 6px;font-family:var(--mono);font-size:var(--fs-2xl);width:104px;z-index:30;display:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .lenbox input{width:100%;background:transparent;border:none;outline:none;font-family:var(--mono)}
 
 /* ---------- inspector ---------- */
 .insp{background:var(--panel);display:flex;flex-direction:column;min-height:0}
 .tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0}
-.tab{flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;color:var(--dim2);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.tab{flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;color:var(--dim2);font-size:var(--fs-lg);letter-spacing:.09em;text-transform:uppercase;font-weight:600}
 .tab:hover{color:var(--text)}
 .tab.on{color:var(--text);border-bottom:2px solid var(--accent);background:var(--panel2);font-weight:700}
 .panes{flex:1;overflow-y:auto;min-height:0}
 .pane{display:none;padding:0 0 40px} .pane.on{display:block}
 
 .card{border-bottom:1px solid var(--line)}
-.card>h4{display:flex;align-items:center;gap:7px;padding:9px 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);cursor:pointer;user-select:none;font-weight:600}
+.card>h4{display:flex;align-items:center;gap:7px;padding:9px 12px;font-size:var(--fs-md);letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);cursor:pointer;user-select:none;font-weight:600}
 .card>h4:hover{color:var(--text);background:var(--panel2)}
-.card>h4 .cx{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--dim2);transition:transform .15s}
+.card>h4 .cx{margin-left:auto;font-family:var(--mono);font-size:var(--fs-sm);color:var(--dim2);transition:transform .15s}
 .card.closed .cx{transform:rotate(-90deg)}
 .card.closed .cbody{display:none}
 .cbody{padding:2px 12px 13px}
-.cref{font-family:var(--mono);font-size:8.5px;color:var(--accent-text);opacity:.9;border:1px solid var(--accent-dk);padding:0 4px;border-radius:2px}
+.cref{font-family:var(--mono);font-size:var(--fs-xs);color:var(--accent-text);opacity:.9;border:1px solid var(--accent-dk);padding:0 4px;border-radius:2px}
 
 .row{display:grid;grid-template-columns:1fr 96px;gap:7px;align-items:center;margin-bottom:6px}
 .row.w{grid-template-columns:1fr 1fr}
-.row>label{font-size:11.5px;color:var(--dim);line-height:1.25}
-.row>label small{display:block;font-family:var(--mono);font-size:9px;color:var(--dim2)}
-.fld{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;width:100%;font-family:var(--mono);font-size:11.5px;text-align:right}
+.row>label{font-size:var(--fs-2xl);color:var(--dim);line-height:1.25}
+.row>label small{display:block;font-family:var(--mono);font-size:var(--fs-sm);color:var(--dim2)}
+.fld{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;width:100%;font-family:var(--mono);font-size:var(--fs-2xl);text-align:right}
+.fld.err{border-color:#8f1f17;background:#fdf0ee;animation:fld-shake .32s}
+@keyframes fld-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .fld:hover{border-color:var(--line2)} .fld:focus{border-color:var(--accent);outline:none}
 select.fld{text-align:left;cursor:pointer}
 .seg{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.seg button{flex:1;background:var(--bg);border:none;padding:5px 2px;cursor:pointer;color:var(--dim);font-size:11px;border-right:1px solid var(--line)}
+.seg button{flex:1;background:var(--bg);border:none;padding:5px 2px;cursor:pointer;color:var(--dim);font-size:var(--fs-xl);border-right:1px solid var(--line)}
 .seg button:last-child{border-right:none}
 .seg button:hover{background:var(--panel3);color:var(--text)}
 .seg button.on{background:var(--text);color:var(--accent)}
-.note{font-size:10.5px;color:var(--dim2);line-height:1.45;margin-top:6px;padding:6px 8px;background:var(--panel2);border-left:2px solid var(--line2);border-radius:0 var(--r) var(--r) 0}
+.note{font-size:var(--fs-lg);color:var(--dim2);line-height:1.45;margin-top:6px;padding:6px 8px;background:var(--panel2);border-left:2px solid var(--line2);border-radius:0 var(--r) var(--r) 0}
 .note b{color:var(--dim)}
-.btn{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:6px 9px;cursor:pointer;color:var(--dim);width:100%;font-size:11.5px}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:6px 9px;cursor:pointer;color:var(--dim);width:100%;font-size:var(--fs-2xl)}
 .btn:hover{background:var(--panel3);color:var(--text);border-color:var(--line2)}
 .btn.acc{background:var(--accent);border-color:var(--accent-dk);color:var(--accent-ink);font-weight:600}
 .btn.acc:hover{background:var(--accent-dk)}
 .btn.warn{color:#8f1f17;border-color:#e0b8b3;background:#fdf3f2}
 .btn.warn:hover{background:#f9e4e1;border-color:#c1291f}
 .btn2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.kv{display:flex;justify-content:space-between;gap:8px;padding:3.5px 0;border-bottom:1px dotted var(--line);font-size:11.5px}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:3.5px 0;border-bottom:1px dotted var(--line);font-size:var(--fs-2xl)}
 .kv:last-child{border-bottom:none}
 .kv span{color:var(--dim)} .kv b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
 .kv b.ok{color:var(--ok)} .kv b.watch{color:var(--watch)} .kv b.high{color:var(--high)} .kv b.bad{color:var(--bad)}
-.empty{padding:34px 20px;text-align:center;color:var(--dim2);font-size:11.5px;line-height:1.6}
+.empty{padding:34px 20px;text-align:center;color:var(--dim2);font-size:var(--fs-2xl);line-height:1.6}
 .empty svg{width:34px;height:34px;stroke:var(--line2);fill:none;stroke-width:1.2;margin-bottom:10px}
 
 /* utilisation bar */
@@ -147,23 +164,28 @@ select.fld{text-align:left;cursor:pointer}
 /* ---------- findings ---------- */
 .findbar{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel2)}
 .tally{display:flex;gap:5px}
-.tally b{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:3px;background:var(--bg);border:1px solid var(--line);display:flex;gap:5px;align-items:center}
+.tally b{font-family:var(--mono);font-size:var(--fs-lg);padding:2px 6px;border-radius:3px;background:var(--bg);border:1px solid var(--line);display:flex;gap:5px;align-items:center}
 .tally b i{width:7px;height:7px;border-radius:50%;display:inline-block;font-style:normal}
+.fgroup{border-bottom:1px solid var(--line2)}
+.fgh{display:flex;align-items:center;gap:7px;padding:7px 12px;background:var(--panel2);font-family:var(--mono);font-size:var(--fs-xl)}
+.fgh b{color:var(--text);font-weight:700;letter-spacing:.02em}
+.fgc{margin-left:auto;color:var(--dim2);font-size:var(--fs-md)}
+.fgroup .find:last-child{border-bottom:none}
 .find{border-bottom:1px solid var(--line);padding:8px 12px;cursor:pointer;border-left:3px solid transparent}
 .find:hover{background:var(--panel2)}
 .find.sel{background:var(--panel3);border-left-color:var(--accent)}
 .find .fh{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 .find .sev{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.find .ft{font-size:12px;font-weight:600;flex:1;line-height:1.25}
-.find .fl{font-family:var(--mono);font-size:9px;color:var(--dim2);border:1px solid var(--line);padding:1px 4px;border-radius:2px;flex-shrink:0}
-.find .fd{font-size:11px;color:var(--dim);line-height:1.5;padding-left:14px}
-.find .fx{font-size:11px;color:var(--accent-text);font-weight:500;line-height:1.5;padding-left:14px;margin-top:4px}
+.find .ft{font-size:var(--fs-2xl);font-weight:600;flex:1;line-height:1.25}
+.find .fl{font-family:var(--mono);font-size:var(--fs-sm);color:var(--dim2);border:1px solid var(--line);padding:1px 4px;border-radius:2px;flex-shrink:0}
+.find .fd{font-size:var(--fs-xl);color:var(--dim);line-height:1.5;padding-left:14px}
+.find .fx{font-size:var(--fs-xl);color:var(--accent-text);font-weight:500;line-height:1.5;padding-left:14px;margin-top:4px}
 .find .fx::before{content:"→ ";opacity:.6}
 .find .fnum{font-family:var(--mono);color:var(--text)}
 
 /* ---------- tables ---------- */
-.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10.5px}
-.tbl th{text-align:right;padding:5px 6px;color:var(--dim2);font-weight:500;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--panel);font-size:9.5px;letter-spacing:.05em}
+.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:var(--fs-lg)}
+.tbl th{text-align:right;padding:5px 6px;color:var(--dim2);font-weight:500;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--panel);font-size:var(--fs-base);letter-spacing:.05em}
 .tbl th:first-child,.tbl td:first-child{text-align:left}
 .tbl td{text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .tbl tr:hover td{background:var(--panel2)}
@@ -171,7 +193,7 @@ select.fld{text-align:left;cursor:pointer}
 .tbl .ok{color:var(--ok)} .tbl .watch{color:var(--watch)} .tbl .high{color:var(--high)} .tbl .bad{color:var(--bad)}
 
 /* ---------- status ---------- */
-.status{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-family:var(--mono);font-size:10px;color:#3a3a34}
+.status{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-family:var(--mono);font-size:var(--fs-md);color:#3a3a34}
 .status b{color:#111111;font-weight:600}
 .status .sp{margin-left:auto}
 .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px}
@@ -181,26 +203,26 @@ select.fld{text-align:left;cursor:pointer}
 .veil.on{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line2);border-radius:6px;width:min(820px,92vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 70px #000b}
 .mtabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line)}
-.mtabs button{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim2);padding:9px 4px;margin-right:18px;cursor:pointer;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.mtabs button{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim2);padding:9px 4px;margin-right:18px;cursor:pointer;font-size:var(--fs-xl);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
 .mtabs button:hover{color:var(--text)}
 .mtabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:700}
 .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 14px;margin:8px 0 14px}
-.kgrid .kitem{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--dim);line-height:1.4}
+.kgrid .kitem{display:flex;align-items:flex-start;gap:8px;font-size:var(--fs-xl);color:var(--dim);line-height:1.4}
 .kgrid .kitem svg{width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:1.6;flex-shrink:0;margin-top:1px}
-.kgrid kbd{background:var(--bg);border:1px solid var(--line2);border-radius:3px;padding:0 5px;font-family:var(--mono);font-size:10px;color:var(--text);flex-shrink:0}
-.codetbl{width:100%;font-size:11px;border-collapse:collapse;margin-bottom:6px}
+.kgrid kbd{background:var(--bg);border:1px solid var(--line2);border-radius:3px;padding:0 5px;font-family:var(--mono);font-size:var(--fs-md);color:var(--text);flex-shrink:0}
+.codetbl{width:100%;font-size:var(--fs-xl);border-collapse:collapse;margin-bottom:6px}
 .codetbl td{padding:5px 10px 5px 0;vertical-align:top;border-bottom:1px solid var(--line)}
 .codetbl td:first-child{white-space:nowrap;font-family:var(--mono);color:var(--text);width:86px}
 .codetbl .sv{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;flex-shrink:0}
 .modal header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
-.modal header h3{font-size:13px;letter-spacing:.06em;font-weight:600}
-.modal header .x{margin-left:auto;background:none;border:none;color:var(--dim2);cursor:pointer;font-size:18px;line-height:1}
+.modal header h3{font-size:var(--fs-body);letter-spacing:.06em;font-weight:600}
+.modal header .x{margin-left:auto;background:none;border:none;color:var(--dim2);cursor:pointer;font-size:var(--fs-h2);line-height:1}
 .modal header .x:hover{color:var(--text)}
-.modal .mb{padding:16px;overflow-y:auto;font-size:12px;line-height:1.65;color:var(--dim)}
-.modal .mb h5{color:var(--text);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:16px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.modal .mb{padding:16px;overflow-y:auto;font-size:var(--fs-2xl);line-height:1.65;color:var(--dim)}
+.modal .mb h5{color:var(--text);font-size:var(--fs-xl);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 .modal .mb h5:first-child{margin-top:0}
 .modal .mb p{margin-bottom:9px}
-.modal .mb code{font-family:var(--mono);background:var(--panel2);padding:1px 5px;border-radius:3px;color:var(--accent-text);font-size:11px}
+.modal .mb code{font-family:var(--mono);background:var(--panel2);padding:1px 5px;border-radius:3px;color:var(--accent-text);font-size:var(--fs-xl)}
 .modal .mb ul{margin:0 0 10px 17px} .modal .mb li{margin-bottom:5px}
 .modal footer{padding:11px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
 .modal footer .btn{width:auto;padding:6px 16px}
@@ -208,11 +230,11 @@ select.fld{text-align:left;cursor:pointer}
 .tpl{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;text-align:left}
 .tpl:hover{border-color:var(--accent);background:var(--panel3)}
 .tpl svg{width:100%;height:62px;stroke:var(--accent);fill:none;stroke-width:2.4;margin-bottom:7px;opacity:.85}
-.tpl b{display:block;font-size:11.5px;color:var(--text);margin-bottom:2px}
-.tpl span{font-size:10px;color:var(--dim2);line-height:1.4;display:block}
-.toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);background:var(--panel3);border:1px solid var(--line2);border-radius:var(--r);padding:8px 15px;font-size:12px;z-index:200;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.tpl b{display:block;font-size:var(--fs-2xl);color:var(--text);margin-bottom:2px}
+.tpl span{font-size:var(--fs-md);color:var(--dim2);line-height:1.4;display:block}
+.toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);background:var(--panel3);border:1px solid var(--line2);border-radius:var(--r);padding:8px 15px;font-size:var(--fs-2xl);z-index:200;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(-6px)}
-.warnbanner{background:#fbf1dc;border-bottom:1px solid #e8c97a;color:#7a5a00;padding:6px 12px;font-size:11px;display:flex;gap:8px;align-items:center}
+.warnbanner{background:#fbf1dc;border-bottom:1px solid #e8c97a;color:#7a5a00;padding:6px 12px;font-size:var(--fs-xl);display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
@@ -237,16 +259,11 @@ select.fld{text-align:left;cursor:pointer}
 
   <div class="stagewrap">
     <canvas id="cv"></canvas>
-    <div class="mapctl">
-      <button class="mapbtn" id="btnMap" title="Toggle OpenStreetMap background (cached for offline use)">
-        <svg viewBox="0 0 24 24"><path d="M3 7l6-4 6 4 6-4v13l-6 4-6-4-6 4z"/><path d="M9 3v13M15 7v13"/></svg>Map
-      </button>
-      <button class="mapbtn" id="btnAnchor" title="Anchor sketch to a real-world location" style="display:none">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Anchor
-      </button>
+    <div class="dnpicker" id="dnpicker">
+      <div class="dnpicker-label">Pipe diameter — press D or click to change</div>
+      <div class="dnpicker-grid" id="dnpickerGrid"></div>
     </div>
-    <div class="tileattr" id="tileAttr">&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors</div>
-    <div class="georef-chip" id="georefChip"></div>
+
     <div class="hud tl" id="hudTL"></div>
     <div class="hud br" id="hudBR"></div>
     <div class="legend" id="legend"></div>
@@ -414,11 +431,10 @@ function blankModel(){
           workAllow:100,trenchMax:0,pairGap:0},
     design:{cls:'auto',duty:'distribution',cycles:250,sigMode:'manual',sigAll:190,
             gFat:0,teeType:'plain',flexAngle:70,anchorLimit:150,exactE:false},
-    view:{show:'stress',labels:true,angles:true,pads:true,moves:true,grid:true,map:false,mapOpacity:0.85},
+    view:{show:'stress',labels:true,angles:true,pads:true,moves:true,grid:true},
     def:{dn:100,series:2},
     nodes:{},edges:{},
-    z:{p:[],i:-1},
-    geo:null  /* {lat,lon,wx,wy} — sketch point (wx,wy) maps to (lat,lon) */
+    z:{p:[],i:-1}
   };
 }
 let M=blankModel();
@@ -952,29 +968,32 @@ function analyse(){
            length between its tee (a fixed or semi-fixed end) and a bend or
            anchor is governed by the same L(all) formula as the main pipe.
            LOGSTOR quotes Lall = sigma_all * As / F for the branch pipe.
-           Exceeding 2*Lall means the stress in the centre of the branch
+           Exceeding Lall means stress in the branch can reach sigAll since
+           the tee end acts as a semi-constrained point (one-end limit, not 2×Lall).
            would exceed sigma_all even with expansion at both ends, so a
            bend is needed at or before Lall from the tee.                  */
         const bLall=A.sigAll*bp.As/Math.max(bp.F*1000,0.01);
         ER[be.id].branchLall=bLall;
         const bStraight=bS?bS.L:edgeLen(be);   /* free straight from tee to first bend/end */
-        if(bStraight>2*bLall)
-          push('high','BR-5','Branch straight length exceeds the installation length',
+        /* For a branch, the tee end is semi-constrained (moves with the main but
+           cannot expand freely). The effective limit is Lall (one constrained end),
+           not 2×Lall which applies only to a run with free ends at both sides.     */
+        if(bStraight>bLall)
+          push('high','BR-5','Branch straight length exceeds installation length L(all)',
             'DN'+be.dn+' branch runs '+bStraight.toFixed(1)+
-            ' m straight before its first bend or anchor, against a maximum L(all) of '+
-            bLall.toFixed(1)+' m for this pipe and soil. Beyond 2\u00d7L(all) = '+
-            (2*bLall).toFixed(1)+' m, axial stress in the branch centre would exceed '+
-            A.sigAll.toFixed(0)+' MPa even with free ends at both ends.',
-            'Introduce a bend in the branch within '+bLall.toFixed(1)+
-            ' m of the tee so the branch can relieve its own thermal stress, or anchor the branch within that length.',
+            ' m straight from the tee to its first bend or free end. '+
+            'The maximum for this pipe and soil is L(all) = '+bLall.toFixed(1)+
+            ' m — beyond this, axial stress in the branch can exceed \u03c3all = '+
+            A.sigAll.toFixed(0)+' MPa.',
+            'Add a bend within '+bLall.toFixed(1)+
+            ' m of the tee, or anchor the branch at that point, to allow thermal stress relief.',
             'EN 13941 / LOGSTOR Lall',{k:'edge',id:be.id});
-        else if(bStraight>1.5*bLall)
-          push('watch','BR-6','Branch straight length is approaching the installation length',
+        else if(bStraight>0.75*bLall)
+          push('watch','BR-6','Branch straight length is approaching L(all)',
             'DN'+be.dn+' branch is '+bStraight.toFixed(1)+
             ' m straight (L(all) = '+bLall.toFixed(1)+' m, '+
-            (100*bStraight/(2*bLall)).toFixed(0)+'% of the 2\u00d7L(all) limit).',
-            'A bend or anchor should be introduced within '+(2*bLall).toFixed(1)+
-            ' m of the tee.',
+            (100*bStraight/bLall).toFixed(0)+'% of limit).',
+            'Consider adding a bend within '+bLall.toFixed(1)+' m of the tee.',
             'EN 13941 / LOGSTOR Lall',{k:'edge',id:be.id});
       });
       teeReport.push(teeRow);
@@ -1266,171 +1285,6 @@ const W2S=(x,y)=>({x:x*V.sc+V.tx,y:y*V.sc+V.ty});
 const S2W=(x,y)=>({x:(x-V.tx)/V.sc,y:(y-V.ty)/V.sc});
 
 
-/* ============================ MAP TILE ENGINE ============================ */
-const TILE_SIZE=256;
-const OSM_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const CACHE_NAME='thermoline-osm-v1';
-const CACHE_MAX_AGE=7*24*3600*1000;  /* 7 days in ms */
-
-/* Web-Mercator projection helpers (EPSG:3857) */
-function latLonToTile(lat,lon,zoom){
-  const n=Math.pow(2,zoom);
-  const x=n*(lon+180)/360;
-  const y=n*(1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2;
-  return{x,y,z:zoom};
-}
-function tileToLatLon(tx,ty,zoom){
-  const n=Math.pow(2,zoom);
-  const lon=tx/n*360-180;
-  const lat=Math.atan(Math.sinh(Math.PI*(1-2*ty/n)))*180/Math.PI;
-  return{lat,lon};
-}
-/* World coord (metres) <-> tile pixel at a given zoom */
-function worldToTilePx(wx,wy,geo,zoom){
-  /* anchor: sketch point (geo.wx, geo.wy) maps to (geo.lat, geo.lon) */
-  const anchorTile=latLonToTile(geo.lat,geo.lon,zoom);
-  /* one sketch metre = V.sc canvas pixels; tile pixels = TILE_SIZE px per tile */
-  /* We need: how many tile pixels correspond to one sketch metre? */
-  /* At zoom z, one tile spans approx (40075016*cos(lat)/2^z) metres */
-  const mPerTile=40075016*Math.cos(geo.lat*Math.PI/180)/Math.pow(2,zoom);
-  const tilePxPerSketchM=TILE_SIZE/mPerTile;
-  const atpx=anchorTile.x*TILE_SIZE+(wx-geo.wx)*tilePxPerSketchM;
-  const atpy=anchorTile.y*TILE_SIZE-(wy-geo.wy)*tilePxPerSketchM;  /* y inverted */
-  return{px:atpx,py:atpy,tilePxPerSketchM,mPerTile};
-}
-
-const _tileImgs={};  /* cache of loaded Image objects: 'z/x/y' -> img|'loading'|'error' */
-async function fetchTileWithCache(z,x,y){
-  const url=OSM_URL.replace('{z}',z).replace('{x}',x).replace('{y}',y);
-  const key='thermoline-osm-v1:'+url;
-  /* Try Cache API first */
-  try{
-    const cache=await caches.open(CACHE_NAME);
-    let resp=await cache.match(url);
-    if(resp){
-      const age=Date.now()-new Date(resp.headers.get('x-cached-at')||0).getTime();
-      if(age<CACHE_MAX_AGE)return url;  /* already cached, URL is fine */
-    }
-    /* Fetch fresh */
-    const fresh=await fetch(url,{mode:'cors'});
-    if(!fresh.ok)throw new Error('tile '+fresh.status);
-    /* Store with a custom header for age tracking */
-    const headers=new Headers(fresh.headers);
-    headers.set('x-cached-at',new Date().toISOString());
-    const blob=await fresh.blob();
-    const resp2=new Response(blob,{headers});
-    await cache.put(url,resp2);
-    return url;
-  } catch(e){
-    /* Cache API not available (e.g. file:// in some browsers): fall back to direct */
-    return url;
-  }
-}
-
-function loadTile(z,x,y){
-  const key=z+'/'+x+'/'+y;
-  if(_tileImgs[key])return _tileImgs[key];
-  _tileImgs[key]='loading';
-  fetchTileWithCache(z,x,y).then(url=>{
-    const img=new Image();
-    img.crossOrigin='anonymous';
-    img.onload=()=>{_tileImgs[key]=img; if(M.view.map)render();};
-    img.onerror=()=>{_tileImgs[key]='error';};
-    img.src=url;
-  });
-  return 'loading';
-}
-
-function bestZoom(){
-  /* Pick OSM zoom so one tile is roughly 200–400 screen pixels */
-  /* V.sc = sketch pixels per sketch metre.  sketch metres per tile at zoom z = mPerTile */
-  if(!M.geo)return 15;
-  const lat=M.geo.lat;
-  for(let z=19;z>=1;z--){
-    const mPerTile=40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,z);
-    const screenPxPerTile=mPerTile*V.sc;
-    if(screenPxPerTile>=180&&screenPxPerTile<=1400)return z;
-  }
-  return 14;
-}
-
-function drawMapTiles(){
-  if(!M.geo)return;
-  const zoom=bestZoom();
-  const geo=M.geo;
-  /* Corner world coords */
-  const tl=S2W(0,0), br=S2W(V.w,V.h);
-  const {px:tlpx,py:tlpy,tilePxPerSketchM}=worldToTilePx(tl.x,tl.y,geo,zoom);
-  /* tile indices for corners */
-  const txMin=Math.floor(tlpx/TILE_SIZE);
-  const tyMin=Math.floor(tlpy/TILE_SIZE);
-  const {px:brpx,py:brpy}=worldToTilePx(br.x,br.y,geo,zoom);
-  const txMax=Math.floor(brpx/TILE_SIZE);
-  const tyMax=Math.floor(brpy/TILE_SIZE);
-  const maxT=Math.pow(2,zoom)-1;
-  ctx.globalAlpha=M.view.mapOpacity||0.85;
-  for(let tx=txMin;tx<=txMax;tx++){
-    for(let ty=tyMin;ty<=tyMax;ty++){
-      if(tx<0||ty<0||tx>maxT||ty>maxT)continue;
-      /* Canvas pixel coords of this tile's top-left */
-      const cpx=Math.round((tx*TILE_SIZE-tlpx)*V.sc/tilePxPerSketchM);  /* adjusted for dpr below */
-      const cpy=Math.round((ty*TILE_SIZE-tlpy)*V.sc/tilePxPerSketchM);
-      const csz=Math.ceil(TILE_SIZE*V.sc/tilePxPerSketchM+1);  /* +1 avoids sub-pixel gaps */
-      const tile=loadTile(zoom,tx,ty);
-      if(tile&&tile!=='loading'&&tile!=='error'){
-        ctx.drawImage(tile,cpx,cpy,csz,csz);
-      } else {
-        ctx.fillStyle='#e8e8e0';
-        ctx.fillRect(cpx,cpy,csz,csz);
-        if(tile==='loading'){
-          ctx.fillStyle='#aaa'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-          ctx.fillText('\u29d6',cpx+csz/2,cpy+csz/2+3);
-        }
-      }
-    }
-  }
-  ctx.globalAlpha=1;
-}
-
-/* Prewarm tiles in the current view */
-function prewarmTiles(){
-  if(!M.geo||!M.view.map)return;
-  const zoom=bestZoom();
-  const tl=S2W(0,0),br=S2W(V.w,V.h);
-  const {px:tlpx,py:tlpy,tilePxPerSketchM}=worldToTilePx(tl.x,tl.y,M.geo,zoom);
-  const {px:brpx,py:brpy}=worldToTilePx(br.x,br.y,M.geo,zoom);
-  const maxT=Math.pow(2,zoom)-1;
-  for(let tx=Math.max(0,Math.floor(tlpx/TILE_SIZE));tx<=Math.min(maxT,Math.floor(brpx/TILE_SIZE));tx++)
-    for(let ty=Math.max(0,Math.floor(tlpy/TILE_SIZE));ty<=Math.min(maxT,Math.floor(brpy/TILE_SIZE));ty++)
-      loadTile(zoom,tx,ty);
-}
-
-/* Georef: convert screen click to a lat/lon guess via the current anchor, or
-   set the anchor from a lat/lon and a sketch world coord */
-function setGeoAnchor(lat,lon,wx,wy){
-  M.geo={lat,lon,wx,wy};
-  Object.keys(_tileImgs).forEach(k=>delete _tileImgs[k]);
-  M.view.map=true;
-  updateGeoChip();
-  render();
-}
-function updateGeoChip(){
-  const chip=$('georefChip'), btn=$('btnAnchor');
-  if(!M.geo){chip.className='georef-chip';return;}
-  chip.className='georef-chip on';
-  chip.textContent=M.geo.lat.toFixed(5)+', '+M.geo.lon.toFixed(5);
-  btn&&(btn.style.display='');
-}
-
-/* Geocode a place name via OSM Nominatim */
-async function geocode(q){
-  const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q);
-  const r=await fetch(url,{headers:{'User-Agent':'Thermoline/1.0'}});
-  const j=await r.json();
-  if(!j.length)return null;
-  return{lat:parseFloat(j[0].lat),lon:parseFloat(j[0].lon),name:j[0].display_name};
-}
-
 function resize(){
   const r=cv.parentElement.getBoundingClientRect();
   V.dpr=window.devicePixelRatio||1; V.w=r.width; V.h=r.height;
@@ -1438,7 +1292,6 @@ function resize(){
   cv.style.width=r.width+'px'; cv.style.height=r.height+'px';
   ctx.setTransform(V.dpr,0,0,V.dpr,0,0);
   render();
-  prewarmTiles();
 }
 function fit(){
   const ns=Object.values(M.nodes);
@@ -1472,17 +1325,11 @@ function niceStep(px){
   return 5000;
 }
 
+
 function render(){
   ctx.clearRect(0,0,V.w,V.h);
-  if(M.view.map&&M.geo){
-    ctx.fillStyle='#e8e4dc'; ctx.fillRect(0,0,V.w,V.h);
-    drawMapTiles();
-    /* light overlay so pipes stay readable against busy maps */
-    ctx.fillStyle='rgba(245,245,241,0.18)'; ctx.fillRect(0,0,V.w,V.h);
-  } else {
-    ctx.fillStyle='#f5f5f1'; ctx.fillRect(0,0,V.w,V.h);
-    if(M.view.grid)drawGrid();
-  }
+  ctx.fillStyle='#f5f5f1'; ctx.fillRect(0,0,V.w,V.h);
+  if(M.view.grid)drawGrid();
   const vw=M.view.show;
 
   /* pads first (under pipes) */
@@ -1531,6 +1378,24 @@ function render(){
     else ctx.strokeStyle=col;
     ctx.lineWidth=Math.max(2,stW);
     ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+
+    /* BR-5 / BR-6 overlay: dashed warning stripe on over-long branches */
+    if(R&&r){
+      const br5=R.findings.find(f=>(f.code==='BR-5'||f.code==='BR-6')&&f.loc&&f.loc.id===e.id);
+      if(br5){
+        const isCrit=br5.code==='BR-5';
+        ctx.save();
+        ctx.setLineDash(isCrit?[5,4]:[8,6]);
+        ctx.strokeStyle=isCrit?'#c1291f':'#c1531c';
+        ctx.lineWidth=Math.max(1.8, stW*0.45);
+        ctx.globalAlpha=isCrit?0.85:0.65;
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha=1;
+        ctx.restore();
+      }
+    }
+
     /* selection / hover */
     if((sel.kind==='edge'&&sel.id===e.id)||(hover.kind==='edge'&&hover.id===e.id)){
       ctx.strokeStyle=sel.id===e.id?'#c4d600':'#c4d60088';
@@ -1543,12 +1408,26 @@ function render(){
       let ang=Math.atan2(b.y-a.y,b.x-a.x);
       if(ang>Math.PI/2||ang<-Math.PI/2)ang+=Math.PI;
       ctx.save();ctx.translate(mx,my);ctx.rotate(ang);
-      ctx.font='500 10px "IBM Plex Mono",monospace';ctx.textAlign='center';
+      ctx.font='500 9px "Consolas","Segoe UI Mono",monospace';ctx.textAlign='center';
       const ref=(R&&REF[e.id])?REF[e.id]+' ':'';
       const txt=ref+'DN'+e.dn+'/S'+(e.series||2)+'  '+edgeLen(e).toFixed(1)+' m';
       const tw=ctx.measureText(txt).width;
       ctx.fillStyle='rgba(255,255,255,.86)';ctx.fillRect(-tw/2-4,-casW/2-15,tw+8,13);
       ctx.fillStyle='#54544e';ctx.fillText(txt,0,-casW/2-5);
+      /* BR-5/6 Lall% warning label — shown below the pipe DN label */
+      if(R&&r){
+        const brFind=R.findings.find(f=>(f.code==='BR-5'||f.code==='BR-6')&&f.loc&&f.loc.id===e.id);
+        if(brFind&&r.branchLall){
+          const Lb=edgeLen(e), util=Lb/(2*r.branchLall);
+          const pct=Math.round(util*100);
+          const warn='branch '+(pct>100?'exceeds':'near')+' L(all) \u2014 '+pct+'%';
+          ctx.font='500 9px "Consolas","Segoe UI Mono",monospace';
+          const ww=ctx.measureText(warn).width;
+          ctx.fillStyle=brFind.code==='BR-5'?'rgba(193,41,31,.92)':'rgba(193,83,28,.88)';
+          ctx.fillRect(-ww/2-4,casW/2+3,ww+8,12);
+          ctx.fillStyle='#ffffff';ctx.fillText(warn,0,casW/2+12);
+        }
+      }
       ctx.restore();
     }
   }
@@ -1585,40 +1464,75 @@ function render(){
   /* badge callout tooltip */
   if(badgeHover.g){
     const list=badgeHover.g.list, px=badgeHover.px, py=badgeHover.py;
-    const maxW=310, lh=17, pad=11, headH=22;
+    const maxW=340, lh=16, pad=11;
+    const innerW=maxW-pad*2;
+
+    /* measure-aware word wrap — uses actual canvas glyph widths */
+    const wrapText=(text,font,maxPx)=>{
+      ctx.font=font;
+      const words=text.split(' ');
+      const wrapped=[]; let line='';
+      words.forEach(w=>{
+        const test=line?line+' '+w:w;
+        if(ctx.measureText(test).width>maxPx&&line){wrapped.push(line);line=w;}
+        else line=test;
+      });
+      if(line)wrapped.push(line);
+      return wrapped;
+    };
+
+    const boldFont='600 10.5px "Segoe UI",system-ui,sans-serif';
+    const bodyFont='400 10px "Segoe UI",system-ui,sans-serif';
+    const dimFont='400 9.5px "Segoe UI",system-ui,sans-serif';
+
     const lines=[];
     list.forEach(f=>{
-      lines.push({bold:true,col:SEVC[f.sev],txt:f.code+' \u2014 '+f.title});
-      /* wrap detail to ~44 chars */
-      const words=f.detail.replace(/<[^>]+>/g,'').split(' ');
-      let line=''; words.forEach(w=>{if((line+w).length>44){lines.push({txt:line.trim()});line='';}line+=w+' ';});
-      if(line.trim())lines.push({txt:line.trim()});
-      if(f.fix){lines.push({txt:'\u2192 '+f.fix.replace(/<[^>]+>/g,'').slice(0,120),dim:true});}
+      /* title line — may also wrap */
+      const titleLines=wrapText(f.code+' \u2014 '+f.title, boldFont, innerW);
+      titleLines.forEach((t,i)=>lines.push({bold:true,col:SEVC[f.sev],txt:t,first:i===0}));
+      /* detail — wrap using body font */
+      const detail=f.detail.replace(/<[^>]+>/g,'');
+      wrapText(detail, bodyFont, innerW).forEach(t=>lines.push({txt:t}));
+      /* fix — wrap using dim font */
+      if(f.fix){
+        const fixTxt='\u2192 '+f.fix.replace(/<[^>]+>/g,'');
+        wrapText(fixTxt, dimFont, innerW).forEach(t=>lines.push({txt:t,dim:true}));
+      }
       lines.push({sep:true});
     });
     while(lines.length&&lines[lines.length-1].sep)lines.pop();
-    const h=lines.length*lh+pad*2;
-    /* position: prefer right of badge, flip if off-screen */
+
+    const footerH=14;
+    const h=lines.length*lh+pad*2+footerH;
     let cx=px+20, cy=py-h/2;
     if(cx+maxW>V.w-8)cx=px-maxW-20;
     if(cy<8)cy=8; if(cy+h>V.h-8)cy=V.h-h-8;
+
     ctx.save();
-    ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=12;ctx.shadowOffsetY=4;
+    ctx.shadowColor='rgba(0,0,0,.25)';ctx.shadowBlur=14;ctx.shadowOffsetY=4;
     ctx.fillStyle='#111111';
     roundRect(ctx,cx,cy,maxW,h,6);ctx.fill();
     ctx.restore();
     ctx.strokeStyle='#3a3a30';ctx.lineWidth=1;
     roundRect(ctx,cx,cy,maxW,h,6);ctx.stroke();
-    ctx.font='12px "IBM Plex Sans",system-ui,sans-serif';
+
     let y=cy+pad+11;
     lines.forEach(l=>{
-      if(l.sep){ctx.strokeStyle='#2a2a24';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx+8,y+2);ctx.lineTo(cx+maxW-8,y+2);ctx.stroke();y+=9;return;}
-      ctx.fillStyle=l.col||( l.dim?'#8a8a78':'#e0e0d4');
-      ctx.font=(l.bold?'700':'400')+' '+(l.bold?'11':'10.5')+'px "IBM Plex Sans",system-ui,sans-serif';
-      ctx.textAlign='left'; ctx.fillText(l.txt,cx+8,y); y+=lh;
+      if(l.sep){
+        ctx.strokeStyle='#2a2a24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(cx+8,y+2);ctx.lineTo(cx+maxW-8,y+2);ctx.stroke();
+        y+=9;return;
+      }
+      ctx.fillStyle=l.col||(l.dim?'#8a8a78':'#e0e0d4');
+      ctx.font=l.bold?boldFont:(l.dim?dimFont:bodyFont);
+      ctx.textAlign='left';
+      ctx.fillText(l.txt,cx+pad,y);
+      y+=lh;
     });
-    ctx.fillStyle='#6a6a58';ctx.font='9px "IBM Plex Mono",monospace';ctx.textAlign='center';
-    ctx.fillText('click to open in findings',cx+maxW/2,cy+h-5);
+    ctx.fillStyle='#5a5a52';
+    ctx.font='8px "Consolas","Segoe UI Mono",monospace';
+    ctx.textAlign='center';
+    ctx.fillText('click to open in findings',cx+maxW/2,cy+h-4);
   }
 
   /* live drawing preview */
@@ -1631,7 +1545,7 @@ function render(){
     const L=Math.hypot(draw.preview.x-A.x,draw.preview.y-A.y);
     const ang=(Math.atan2(draw.preview.y-A.y,draw.preview.x-A.x)*180/Math.PI+360)%360;
     const txt=L.toFixed(1)+' m   '+ang.toFixed(0)+'\u00b0';
-    ctx.font='700 12px "IBM Plex Mono",monospace';ctx.textAlign='left';
+    ctx.font='700 11px "Consolas","Segoe UI Mono",monospace';ctx.textAlign='left';
     const tw=ctx.measureText(txt).width;
     ctx.fillStyle='#12140a';ctx.fillRect(b.x+9,b.y-27,tw+12,18);
     ctx.fillStyle='#c4d600';ctx.fillText(txt,b.x+15,b.y-14);
@@ -1692,21 +1606,68 @@ function drawNode(n){
     case 'loop':
       ctx.strokeStyle='#8a9600';ctx.lineWidth=2.2;
       ctx.beginPath();ctx.arc(p.x,p.y-2,S,0.6*Math.PI,2.4*Math.PI);ctx.stroke();break;
-    case 'valve':
+    case 'valve':{
+      /* find pipe direction from any connected edge */
+      const es=edgesAt(n.id);
+      let ang=0;
+      if(es.length){
+        const e=es[0],A=M.nodes[e.a],B=M.nodes[e.b];
+        /* canvas: A→B direction. atan2 uses canvas coords (Y-down) directly. */
+        if(A&&B) ang=Math.atan2(W2S(B.x,B.y).y-W2S(A.x,A.y).y,
+                                W2S(B.x,B.y).x-W2S(A.x,A.y).x);
+      }
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(ang);
+      /* bowtie: tips meet at origin, flat bases face outward along pipe */
       ctx.fillStyle='#c7c7bd';ctx.strokeStyle='#2a2a25';ctx.lineWidth=1.4;
-      ctx.beginPath();ctx.moveTo(p.x-S,p.y-S);ctx.lineTo(p.x+S,p.y+S);
-      ctx.lineTo(p.x-S,p.y+S);ctx.lineTo(p.x+S,p.y-S);ctx.closePath();ctx.fill();ctx.stroke();break;
-    case 'reducer':
+      ctx.beginPath();
+      ctx.moveTo(0,0);ctx.lineTo(-S,-S);ctx.lineTo(-S,S);ctx.closePath();
+      ctx.fill();ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0,0);ctx.lineTo(S,-S);ctx.lineTo(S,S);ctx.closePath();
+      ctx.fill();ctx.stroke();
+      ctx.restore();break;
+    }
+    case 'reducer':{
+      const es=edgesAt(n.id);
+      let ang=0;
+      if(es.length>=2){
+        /* find which edge has the larger DN — that's the wide end.
+           Orient so we go from the larger-DN edge toward the smaller-DN edge. */
+        const e0=es[0],e1=es[1];
+        const dn0=e0.dn||100, dn1=e1.dn||100;
+        /* bigEdge → node → smallEdge: direction is from bigEdge's far end through node */
+        const bigEdge=dn0>=dn1?e0:e1;
+        const smallEdge=dn0>=dn1?e1:e0;
+        /* canvas direction: from the big-pipe side to the small-pipe side */
+        const bigFar=M.nodes[other(bigEdge,n.id)];
+        const smallFar=M.nodes[other(smallEdge,n.id)];
+        if(bigFar&&smallFar){
+          const bigS=W2S(bigFar.x,bigFar.y), smallS=W2S(smallFar.x,smallFar.y);
+          /* direction big→small through node */
+          ang=Math.atan2(smallS.y-bigS.y,smallS.x-bigS.x);
+        }
+      } else if(es.length===1){
+        const e=es[0],A=M.nodes[e.a],B=M.nodes[e.b];
+        if(A&&B){const aS=W2S(A.x,A.y),bS=W2S(B.x,B.y);
+          ang=Math.atan2(bS.y-aS.y,bS.x-aS.x);}
+      }
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(ang);
+      /* trapezoid in local space: wide end on the left (-X), narrow end on right (+X)
+         so after rotation the wide end faces the larger pipe */
       ctx.fillStyle='#c7c7bd';ctx.strokeStyle='#2a2a25';ctx.lineWidth=1.3;
-      ctx.beginPath();ctx.moveTo(p.x-S,p.y-S*0.8);ctx.lineTo(p.x+S,p.y-S*0.4);
-      ctx.lineTo(p.x+S,p.y+S*0.4);ctx.lineTo(p.x-S,p.y+S*0.8);ctx.closePath();ctx.fill();ctx.stroke();break;
+      ctx.beginPath();
+      ctx.moveTo(-S,-S*0.8);ctx.lineTo(S,-S*0.35);
+      ctx.lineTo(S,S*0.35);ctx.lineTo(-S,S*0.8);
+      ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.restore();break;
+    }
     default: /* bend / weld */
       if(r&&r.ep){ctx.fillStyle='#3f8a2e';ctx.strokeStyle='#12140a';ctx.lineWidth=1.4;
         ctx.beginPath();ctx.arc(p.x,p.y,S*0.75,0,7);ctx.fill();ctx.stroke();}
       else{ctx.fillStyle='#5a5a52';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2.4,S*0.42),0,7);ctx.fill();}
   }
   if(V.sc>1.5){
-    ctx.font='500 9.5px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.font='500 9px "Consolas","Segoe UI Mono",monospace';ctx.textAlign='center';
     const jtag=R?REF[n.id]:''; const fptag=R?REF[n.id+'_fp']:'';
     const lbl=(n.label?n.label+' ':'')+(fptag?fptag:(jtag||''));
     if(lbl){
@@ -1719,7 +1680,7 @@ function drawNode(n){
 }
 
 function drawMoves(){
-  ctx.font='500 10px "IBM Plex Mono",monospace';
+  ctx.font='500 9px "Consolas","Segoe UI Mono",monospace';
   for(const nid in R.NR){
     const r=R.NR[nid], n=M.nodes[nid]; if(!n)continue;
     let vx=r.move.x,vy=r.move.y,d=r.dR;
@@ -1744,24 +1705,22 @@ function drawMoves(){
 }
 
 function drawAngles(){
-  ctx.font='600 10px "IBM Plex Mono",monospace';
+  ctx.font='600 9px "Consolas","Segoe UI Mono",monospace';
   ctx.textAlign='center';
   for(const n of Object.values(M.nodes)){
     const es=edgesAt(n.id); if(es.length!==2)continue;
     const d1=dirFrom(es[0],n.id), d2=dirFrom(es[1],n.id);
     const dot=Math.max(-1,Math.min(1,d1.x*d2.x+d1.y*d2.y));
-    const dev=180-Math.acos(dot)*180/Math.PI; /* 0=straight, 90=right angle */
-    if(dev<2)continue;                         /* skip near-straight welds */
+    const dev=180-Math.acos(dot)*180/Math.PI;
+    if(dev<2)continue;
     const pw=W2S(n.x,n.y);
-    /* place label along the bisector of the two legs, outside the bend */
     const bx=(d1.x+d2.x), by=(d1.y+d2.y);
     const bl=Math.hypot(bx,by)||1;
-    /* bisector points into the bend; we want outside */
     const ox=-bx/bl, oy=-by/bl;
     const S=Math.max(4,Math.min(9,V.sc*0.5+3));
     const off=S+14;
     const tx=pw.x+ox*off, ty=pw.y+oy*off;
-    const txt=dev.toFixed(0)+'°';
+    const txt=dev.toFixed(0)+'\u00b0';
     const tw=ctx.measureText(txt).width;
     ctx.fillStyle='rgba(255,255,255,.86)';
     ctx.fillRect(tx-tw/2-3,ty-9,tw+6,13);
@@ -1841,7 +1800,7 @@ function drawBadges(){
     }
     ctx.fillStyle=SEVC[worst.sev];ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(bx,by,sels?9:7,0,7);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#ffffff';ctx.font='700 9px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.fillStyle='#ffffff';ctx.font='700 8.5px "Consolas","Segoe UI Mono",monospace';ctx.textAlign='center';
     ctx.fillText(g.list.length>1?String(g.list.length):'!',bx,by+3);
     /* thin line from badge to node */
     ctx.strokeStyle=SEVC[worst.sev];ctx.lineWidth=1;ctx.globalAlpha=.5;
@@ -1900,7 +1859,7 @@ function drawHud(){
       '<div class="zdiv"></div>'+
       '<button id="zFit" title="Zoom to fit (Home)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>'+
       '<div class="zdiv"></div>'+
-      '<span id="zGrid" style="padding:3px 8px;font-size:10px;color:#c8c8bc;white-space:nowrap">grid</span>'+
+      '<span id="zGrid" style="padding:3px 8px;font-size:var(--fs-md);color:#c8c8bc;white-space:nowrap">grid</span>'+
     '</div>';
     document.getElementById('zOut').onclick=()=>applyZoom(V.sc/1.5);
     document.getElementById('zIn').onclick=()=>applyZoom(V.sc*1.5);
@@ -1917,7 +1876,45 @@ function drawHud(){
   }
   const g=document.getElementById('zGrid');
   if(g)g.textContent='grid '+step+' m';
-  br.innerHTML='<span class="chip">x '+mouse.wx.toFixed(1)+' &nbsp; y '+mouse.wy.toFixed(1)+' m</span>';
+  br.innerHTML='<span class="chip">x '+mouse.wx.toFixed(1)+' &nbsp; y '+mouse.wy.toFixed(1)+' m</span>'+
+    (tool==='route'?
+      ' <span class="dnchip" id="dnChip" onclick="toggleDnPicker()" title="Change pipe diameter (D)">'+
+      'DN'+M.def.dn+'</span>':
+      '');
+}
+
+/* ---- DN diameter picker ------------------------------------------------ */
+function buildDnPickerGrid(){
+  const grid=$('dnpickerGrid'); if(!grid)return;
+  grid.innerHTML=PIPES.map(pipe=>
+    '<button class="dnbtn'+(pipe.dn===M.def.dn?' cur':'')+'" '+
+    'title="DN'+pipe.dn+' \u00b7 '+pipe.d+'\u00d7'+pipe.t+' mm \u00b7 As '+pipe.As+' mm\u00b2" '+
+    'onclick="selectDn('+pipe.dn+')">'+pipe.dn+'</button>'
+  ).join('');
+}
+
+function toggleDnPicker(){
+  const pk=$('dnpicker');
+  if(pk.classList.contains('on')){pk.classList.remove('on');return;}
+  buildDnPickerGrid();
+  pk.classList.add('on');
+}
+
+function hideDnPicker(){
+  $('dnpicker').classList.remove('on');
+}
+
+function selectDn(dn){
+  M.def.dn=dn;
+  hideDnPicker();
+  /* update in-progress edges if currently drawing */
+  if(draw.active&&draw.lastNode){
+    edgesAt(draw.lastNode).forEach(e=>{e.dn=dn;});
+  }
+  /* refresh the project pane DN default field and HUD chip */
+  syncProject();
+  render();
+  toast('DN'+dn+' selected');
 }
 
 function roundRect(ctx,x,y,w,h,r){
@@ -1932,7 +1929,7 @@ const TOOLS=[
  {hd:'Draw'},
  {id:'select', k:'V', name:'Select', sub:'move nodes',
    svg:'<path d="M4 3l7 17 2.5-6.5L20 11z"/>'},
- {id:'route',  k:'R', name:'Route', sub:'click to place pipe',
+ {id:'route',  k:'R', name:'Route', sub:'click to place · D for diameter',
    svg:'<path d="M3 20h6l4-8h8"/><circle cx="3" cy="20" r="1.6"/><circle cx="21" cy="12" r="1.6"/>'},
  {id:'branch', k:'B', name:'Branch', sub:'tee off a pipe',
    svg:'<path d="M3 6h18M12 6v14"/>'},
@@ -1952,12 +1949,10 @@ const TOOLS=[
    svg:'<circle cx="12" cy="12" r="7"/><path d="M9 15l6-6"/>'},
  {sep:1},
  {hd:'Insert expansion'},
- {id:'insuloop',k:'O', name:'U-loop', sub:'O to insert / Shift flips',
+ {id:'insuloop',k:'O', name:'U-loop', sub:'click a pipe · Shift flips side',
    svg:'<path d="M5 20V10a5 5 0 0110 0v10"/><path d="M3 20h4M13 20h4"/>'},
- {id:'insz',    k:'Z', name:'Z-offset', sub:'Z to insert / Shift flips',
+ {id:'insz',    k:'Z', name:'Z-offset', sub:'click a pipe · Shift flips side',
    svg:'<path d="M4 7h7v10h9"/>'},
- {id:'loop',    k:'U', name:'Loop mark', sub:'flag existing node',
-   svg:'<path d="M6 20V11a6 6 0 0112 0v9"/>'},
  {sep:1},
  {hd:'View'},
  {id:'fit',    k:'', name:'Fit view', sub:'Home key',
@@ -2077,6 +2072,8 @@ function unitPerp(dir,flip){return flip?{x:dir.y,y:-dir.x}:{x:-dir.y,y:dir.x};}
 /* click on an existing straight pipe: split it and splice the detour in,
    reconnecting to the original far node so the rest of the route is
    undisturbed. */
+
+
 function insertDetourOnEdge(kind,he,ev){
   const e=he.e;
   const opts={dn:e.dn,series:e.series,cover:e.cover,soil:e.soil};
@@ -2085,20 +2082,18 @@ function insertDetourOnEdge(kind,he,ev){
   const dir={x:(Bx-Ax)/L,y:(By-Ay)/L};
   const farB=e.b;
   const splitNode=splitEdge(e,he.t);
-  const es=edgesAt(splitNode);
-  const fwd=es.find(ee=>other(ee,splitNode)===farB);
+  const es2=edgesAt(splitNode);
+  const fwd=es2.find(ee=>other(ee,splitNode)===farB);
   if(fwd)delete M.edges[fwd.id];
   const flip=!!(ev&&ev.shiftKey);
   const exit=buildDetour(kind,splitNode,dir,opts,flip);
   addEdge(exit,farB,opts);
   select('node',splitNode);
-  snapshot(); run();
-  autoResizeLoopAfterInsert(splitNode, kind);
-  toast((kind==='uloop'?'U-loop':'Z-offset')+' inserted \u2014 dimensions sized for pad fit');
+  snapshot();run();
+  autoResizeLoopAfterInsert(splitNode,kind);
+  toast((kind==='uloop'?'U-loop':'Z-offset')+' inserted \u2014 Shift to flip side');
 }
 
-/* trigger mid-route: append the detour at the current drawing tip and
-   keep the route open so the person can carry straight on drawing. */
 function insertDetourWhileDrawing(kind,ev){
   if(!draw.active||!draw.lastNode)return;
   const nid=draw.lastNode, es=edgesAt(nid);
@@ -2117,9 +2112,9 @@ function insertDetourWhileDrawing(kind,ev){
   const flip=!!(ev&&ev.shiftKey);
   const exit=buildDetour(kind,nid,dir,opts,flip);
   draw.lastNode=exit; draw.preview=null;
-  snapshot(); run();
-  autoResizeLoopAfterInsert(exit, kind);
-  toast((kind==='uloop'?'U-loop':'Z-offset')+' added \u2014 dimensions sized for pad fit');
+  snapshot();run();
+  autoResizeLoopAfterInsert(exit,kind);
+  toast((kind==='uloop'?'U-loop':'Z-offset')+' added \u2014 Shift to flip side');
 }
 
 /* shared geometry builder used by both entry points above */
@@ -2234,12 +2229,14 @@ function snapPoint(wx,wy,ev){
   draw.snap=null;
   const n=hitNode(sp.x,sp.y,13);
   if(n){draw.snap={x:n.x,y:n.y,node:n.id};return{x:n.x,y:n.y,node:n.id};}
-  const he=hitEdge(sp.x,sp.y,9);
+  const he=hitEdge(sp.x,sp.y,tool==='branch'?16:9);
   if(he&&tool!=='select'){
     const A=M.nodes[he.e.a],B=M.nodes[he.e.b];
     const x=A.x+(B.x-A.x)*he.t,y=A.y+(B.y-A.y)*he.t;
     draw.snap={x,y,edge:he.e.id,t:he.t};return{x,y,edge:he.e.id,t:he.t};
   }
+  /* branch tool: no grid snap — only valid placement is on a pipe */
+  if(tool==='branch')return{x:wx,y:wy};
   if(ev&&ev.altKey)return{x:wx,y:wy};
   const g=niceStep(58)/4;
   return{x:Math.round(wx/g)*g,y:Math.round(wy/g)*g};
@@ -2271,7 +2268,11 @@ function snapFrom(ax,ay,wx,wy,ev,axisDir){
 /* drawing ---------------------------------------------------------------*/
 function beginDraw(nid){draw.active=true;draw.lastNode=nid;}
 function endDraw(){
-  if(draw.active){draw.active=false;draw.lastNode=null;draw.preview=null;
+  if(draw.active){
+    /* if the last node has no edges it was a lone first-click — remove it */
+    if(draw.lastNode&&edgesAt(draw.lastNode).length===0)
+      delete M.nodes[draw.lastNode];
+    draw.active=false;draw.lastNode=null;draw.preview=null;
     draw.branchDir=null;hideLen();snapshot();run();}
   draw.snap=null;render();
 }
@@ -2319,6 +2320,7 @@ lenInput.addEventListener('keydown',ev=>{
 let pan=null, dragNode=null;
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('mousedown',ev=>{
+  hideDnPicker();
   const r=cv.getBoundingClientRect(), sx=ev.clientX-r.left, sy=ev.clientY-r.top;
   const w=S2W(sx,sy);
   if(ev.button===1||ev.button===2||(ev.button===0&&ev.code==='Space')){
@@ -2367,7 +2369,7 @@ cv.addEventListener('mousedown',ev=>{
     if(he){delEdge(he.e.id);snapshot();run();}
     return;
   }
-  if(['anchor','free','loop','ecomp','valve','clear'].includes(tool)){
+  if(['anchor','free','ecomp','valve','clear'].includes(tool)){
     let n=hitNode(sx,sy,14);
     if(!n){const he=hitEdge(sx,sy,10);if(he)n=M.nodes[splitEdge(he.e,he.t)];}
     if(n){n.type=(tool==='clear')?'auto':tool;select('node',n.id);snapshot();run();}
@@ -2395,6 +2397,39 @@ window.addEventListener('mousemove',ev=>{
     const A=M.nodes[draw.lastNode];
     const sn=snapPoint(w.x,w.y,ev);
     draw.preview=(sn.node||sn.edge)?{x:sn.x,y:sn.y}:snapFrom(A.x,A.y,sn.x,sn.y,ev,draw.branchDir);
+    render();return;
+  }
+  if(tool==='branch'||(!draw.active&&tool==='route')||
+     ['anchor','free','ecomp','valve','insuloop','insz'].includes(tool)){
+    /* Priority 1: snap hard to any pipe endpoint within 18 screen pixels.
+       This gives clean continuation when approaching a pipe end, and is
+       more reliable than a world-metre threshold which varies with zoom.  */
+    let snapNode=null, snapNodeD=Infinity;
+    for(const n of Object.values(M.nodes)){
+      const ns=W2S(n.x,n.y);
+      const d=Math.hypot(ns.x-sx,ns.y-sy);
+      if(d<18&&d<snapNodeD){snapNodeD=d;snapNode=n;}
+    }
+    if(snapNode){
+      draw.snap={x:snapNode.x,y:snapNode.y,node:snapNode.id};
+      render();return;
+    }
+    /* Priority 2: project onto nearest pipe body within SNAP_RADIUS screen px */
+    const SNAP_RADIUS=40;
+    let bestE=null,bestT=0,bestD=Infinity;
+    for(const e of Object.values(M.edges)){
+      const A=M.nodes[e.a],B=M.nodes[e.b];if(!A||!B)continue;
+      const a=W2S(A.x,A.y),b=W2S(B.x,B.y);
+      const dx=b.x-a.x,dy=b.y-a.y,L2=dx*dx+dy*dy||1;
+      let t=((sx-a.x)*dx+(sy-a.y)*dy)/L2; t=Math.max(0,Math.min(1,t));
+      const d=Math.hypot(a.x+t*dx-sx,a.y+t*dy-sy);
+      if(d<bestD){bestD=d;bestE=e;bestT=t;}
+    }
+    if(bestE&&bestD<=SNAP_RADIUS){
+      const A=M.nodes[bestE.a],B=M.nodes[bestE.b];
+      const x=A.x+(B.x-A.x)*bestT,y=A.y+(B.y-A.y)*bestT;
+      draw.snap={x,y,edge:bestE.id,t:bestT};
+    } else draw.snap=null;
     render();return;
   }
   if(tool!=='select')snapPoint(w.x,w.y,ev);
@@ -2427,7 +2462,6 @@ cv.addEventListener('wheel',ev=>{
   const after=S2W(sx,sy);
   V.tx+=(after.x-before.x)*V.sc; V.ty+=(after.y-before.y)*V.sc;
   render();
-  if(M.view.map)prewarmTiles();
 },{passive:false});
 
 window.addEventListener('keydown',ev=>{
@@ -2439,7 +2473,7 @@ window.addEventListener('keydown',ev=>{
     if(k==='s'){ev.preventDefault();saveFile();}
     return;
   }
-  if(ev.key==='Escape'){if(draw.active)endDraw();else select(null,null);return;}
+  if(ev.key==='Escape'){hideDnPicker();if(draw.active)endDraw();else select(null,null);return;}
   if(ev.key==='Enter'){if(draw.active)endDraw();return;}
   if(ev.key==='Delete'||ev.key==='Backspace'){
     if(sel.kind==='node'){delNode(sel.id);select(null,null);snapshot();run();}
@@ -2447,14 +2481,16 @@ window.addEventListener('keydown',ev=>{
     return;
   }
   if(ev.key==='Home'){fit();return;}
+  /* D key toggles the DN picker while in route mode */
+  if(k==='d'&&tool==='route'){toggleDnPicker();return;}
   if(draw.active&&/^[0-9.]$/.test(ev.key)){showLen();lenInput.value=ev.key;return;}
   if((k==='o'||k==='z')&&draw.active){
     insertDetourWhileDrawing(k==='o'?'uloop':'zoffset',ev);
     return;
   }
-  const map={v:'select',r:'route',b:'branch',x:'erase',a:'anchor',f:'free',u:'loop',e:'ecomp',w:'valve',
+  const map={v:'select',r:'route',b:'branch',x:'erase',a:'anchor',f:'free',e:'ecomp',w:'valve',
              o:'insuloop',z:'insz'};
-  if(map[k]){tool=map[k];endDraw();syncRail();}
+  if(map[k]){tool=map[k];endDraw();hideDnPicker();syncRail();}
   if(k==='l'){M.view.labels=!M.view.labels;render();syncRail();}
   if(k==='k'){M.view.angles=!M.view.angles;render();syncRail();}
 });
@@ -2497,6 +2533,12 @@ document.addEventListener('click',ev=>{
     let val=v; if(v==='true')val=true; else if(v==='false')val=false;
     else if(!isNaN(parseFloat(v))&&/^-?[\d.]+$/.test(v))val=parseFloat(v);
     setPath(M,p,val);
+    /* when switching medium, apply sensible temperature defaults */
+    if(p==='ops.medium'){
+      if(val==='cooling'){M.ops.Tmax=25;M.ops.Tmin=3;}
+      else{M.ops.Tmax=110;M.ops.Tmin=10;}
+      buildProjectPane();  /* refresh the temperature input fields */
+    }
     sb.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===sb));
     onModelChange();}
 });
@@ -2610,8 +2652,6 @@ function buildProjectPane(){
     '<button class="btn" data-toggle="view.grid">Grid</button>'+
     '<button class="btn" data-toggle="view.pads">Foam pads</button>'+
     '<button class="btn" data-toggle="view.moves">Movements</button></div>'+
-    '<div class="row" style="margin-top:8px"><label>Map opacity<small>when map is active</small></label>'+
-    '<input class="fld" type="range" min="0.2" max="1" step="0.05" data-bind="view.mapOpacity" value="0.85" style="text-align:left"></div>'+
     '<div class="btn2" style="margin-top:6px"><button class="btn" id="btnFit">Zoom to fit</button>'+
     '<button class="btn warn" id="btnClearAll">Clear network</button></div>');
   $('pProject').innerHTML=html;
@@ -2619,8 +2659,6 @@ function buildProjectPane(){
   $('applyAllSer').onclick=()=>{Object.values(M.edges).forEach(e=>e.series=M.def.series);snapshot();run();toast('Series applied to every pipe');};
   $('btnFit').onclick=fit;
   $('btnClearAll').onclick=()=>{if(confirm('Delete the whole sketch?')){M.nodes={};M.edges={};snapshot();run();fit();}};
-  /* sync map button state */
-  const mapBtn=$('btnMap'); if(mapBtn)mapBtn.classList.toggle('on',!!M.view.map);
   document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{
     const p=b.dataset.toggle;setPath(M,p,!getPath(M,p));render();syncProject();syncRail();});
   document.querySelectorAll('#cSoil [data-bind]').forEach(el=>
@@ -2639,8 +2677,6 @@ function syncProject(){
     let cur=getPath(M,p);
     b.classList.toggle('on',String(cur)===v);
   });
-  /* sync map button state */
-  const mapBtn=$('btnMap'); if(mapBtn)mapBtn.classList.toggle('on',!!M.view.map);
   document.querySelectorAll('[data-toggle]').forEach(b=>
     b.classList.toggle('acc',!!getPath(M,b.dataset.toggle)));
   if(!R)return;
@@ -2674,15 +2710,24 @@ function buildElementPane(){
   if(sel.kind==='node')el.innerHTML=nodePane(M.nodes[sel.id]);
   else el.innerHTML=edgePane(M.edges[sel.id]);
   const lenInput2=$('elLen');
-  if(lenInput2)lenInput2.onchange=()=>{
-    const v=parseFloat(lenInput2.value); if(!v||v<0.1)return;
-    const ed=M.edges[sel.id]; if(!ed)return;
-    const A=M.nodes[ed.a],B=M.nodes[ed.b]; if(!A||!B)return;
-    const cur=Math.hypot(B.x-A.x,B.y-A.y)||1;
-    const ux=(B.x-A.x)/cur, uy=(B.y-A.y)/cur;
-    B.x=A.x+ux*v; B.y=A.y+uy*v;
-    snapshot();run();buildElementPane();
-  };
+  if(lenInput2){
+    lenInput2.onchange=()=>{
+      const v=parseFloat(lenInput2.value);
+      const ed=M.edges[sel.id]; if(!ed)return;
+      if(!v||isNaN(v)||v<0.1){
+        lenInput2.classList.add('err');
+        lenInput2.title='Enter a length of at least 0.1 m';
+        lenInput2.value=fmt(edgeLen(ed),1);
+        setTimeout(()=>lenInput2.classList.remove('err'),1400);
+        return;
+      }
+      const A=M.nodes[ed.a],B=M.nodes[ed.b]; if(!A||!B)return;
+      const cur=Math.hypot(B.x-A.x,B.y-A.y)||1;
+      const ux=(B.x-A.x)/cur, uy=(B.y-A.y)/cur;
+      B.x=A.x+ux*v; B.y=A.y+uy*v;
+      snapshot();run();buildElementPane();
+    };
+  }
   const del=$('elDel'); if(del)del.onclick=()=>{
     if(sel.kind==='node')delNode(sel.id);else delEdge(sel.id);
     select(null,null);snapshot();run();};
@@ -2708,7 +2753,7 @@ function nodePane(n){
   const names={free:'Free end',anchor:'Fixed point',bend:'Bend',tee:'Branch / tee',
     valve:'Valve',ecomp:'E-comp',loop:'U-loop',weld:'Weld',reducer:'Reducer',orphan:'Isolated'};
   const jtag=REF[n.id]||''; const fptag=REF[n.id+'_fp']||'';
-  const tagBadge=(jtag?'<span style="font-family:var(--mono);font-size:10px;color:var(--accent-text);'+
+  const tagBadge=(jtag?'<span style="font-family:var(--mono);font-size:var(--fs-md);color:var(--accent-text);'+
     'background:var(--panel2);border:1px solid var(--line);padding:1px 5px;border-radius:3px;margin-left:6px">'+
     jtag+(fptag?' / '+fptag:'')+'</span>':'');
   let out=cardF('nA','Node \u2014 '+(names[role]||role)+tagBadge,'deg '+degree(n.id),
@@ -2768,7 +2813,7 @@ function nodePane(n){
         '%;background:'+ramp(tee.util)+'"></i></div>';
       tee.br.forEach(br=>{
         t+='<div style="margin-top:9px;padding-top:7px;border-top:1px solid var(--line)">'+
-        '<div style="font-size:11px;color:var(--dim);margin-bottom:4px">DN'+br.dn+' branch</div>'+
+        '<div style="font-size:var(--fs-xl);color:var(--dim);margin-bottom:4px">DN'+br.dn+' branch</div>'+
         kv('Lateral movement imposed',fmt(br.lat,0)+' mm')+
         kv('Free length available',fmt(br.Lb,1)+' m')+
         kv('Free length required','<span>'+fmt(br.Lreq,1)+' m</span>',br.Lb<br.Lreq?'bad':'ok')+
@@ -2786,13 +2831,13 @@ function edgePane(e){
   const b='edges.'+e.id, r=R?R.ER[e.id]:null, p=edgeProps(e);
   const dnOpts=PIPES.map(q=>[q.dn,'DN '+q.dn+'  ('+q.d+' \u00d7 '+q.t+')']);
   const pstag=REF[e.id]||'';
-  const psTagBadge=pstag?'<span style="font-family:var(--mono);font-size:10px;color:var(--accent-text);'+
+  const psTagBadge=pstag?'<span style="font-family:var(--mono);font-size:var(--fs-md);color:var(--accent-text);'+
     'background:var(--panel2);border:1px solid var(--line);padding:1px 5px;border-radius:3px;margin-left:6px">'+
     pstag+'</span>':'';
   const curLen=edgeLen(e);
   let out=cardF('eA','Pipe section'+psTagBadge,'',
     '<div class="row"><label>Pipe length<small>metres \u2014 edit to resize</small></label>'+
-    '<input class="fld" id="elLen" type="number" min="0.1" step="0.5" value="'+fmt(curLen,1)+'" style="font-size:13px;font-weight:700"></div>'+
+    '<input class="fld" id="elLen" type="number" min="0.1" step="0.5" value="'+fmt(curLen,1)+'" style="font-size:var(--fs-body);font-weight:700"></div>'+
     rowF('Nominal size','',selF(b+'.dn',dnOpts),true)+
     rowF('Insulation series','',
       '<div class="seg"><button data-set="'+b+'.series|1">1</button>'+
@@ -2843,17 +2888,54 @@ function buildFindingsPane(){
   const bar='<div class="findbar"><div class="tally">'+
     ['critical','high','watch','info'].map(s=>'<b><i style="background:'+SEVC[s]+
       '"></i>'+t[s]+'</b>').join('')+'</div>'+
-    '<span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim2)">'+
+    '<span style="margin-left:auto;font-family:var(--mono);font-size:var(--fs-md);color:var(--dim2)">'+
     R.findings.length+' items</span></div>';
   if(!R.findings.length){el.innerHTML=bar+'<div class="empty">No findings.</div>';return;}
-  el.innerHTML=bar+R.findings.map(f=>
-    '<div class="find'+(sel.kind==='find'&&sel.id===f.id?' sel':'')+'" data-find="'+f.id+'">'+
-    '<div class="fh"><span class="sev" style="background:'+SEVC[f.sev]+'"></span>'+
-    '<span class="ft">'+f.title+'</span><span class="fl">'+f.code+'</span></div>'+
-    '<div class="fd">'+f.detail+'</div>'+
-    (f.fix?'<div class="fx">'+f.fix+'</div>':'')+
-    (f.ref?'<div class="fd" style="color:var(--dim2);font-size:10px;margin-top:4px">'+f.ref+'</div>':'')+
+
+  /* Resolve a display tag for each finding's location */
+  const tagFor=f=>{
+    if(!f.loc)return null;
+    if(f.loc.k==='node')return REF[f.loc.id]||null;
+    if(f.loc.k==='edge')return REF[f.loc.id]||null;
+    if(f.loc.k==='section'){
+      const S=R.sections.find(s=>s.id===f.loc.id);
+      if(S&&S.edges&&S.edges.length){
+        const mid=S.edges[Math.floor(S.edges.length/2)];
+        return REF[mid.id]||null;
+      }
+    }
+    return null;
+  };
+  const sevRank={critical:0,high:1,watch:2,info:3};
+
+  /* Group findings by tag, preserving first-seen order; findings with no
+     resolvable tag fall into a final "Network" group.                    */
+  const groups=[]; const byTag={};
+  R.findings.forEach(f=>{
+    const tag=tagFor(f)||'Network';
+    if(!byTag[tag]){byTag[tag]={tag,items:[],worst:'info'};groups.push(byTag[tag]);}
+    byTag[tag].items.push(f);
+    if(sevRank[f.sev]<sevRank[byTag[tag].worst])byTag[tag].worst=f.sev;
+  });
+  /* order groups by worst severity, then by tag string (J- before PS- before FP- before Network) */
+  const tagOrder=tg=>tg==='Network'?9:tg[0]==='J'?0:tg[0]==='P'?1:tg[0]==='F'?2:3;
+  groups.sort((a,b)=>sevRank[a.worst]-sevRank[b.worst]||tagOrder(a.tag)-tagOrder(b.tag)||a.tag.localeCompare(b.tag));
+  groups.forEach(g=>g.items.sort((a,b)=>sevRank[a.sev]-sevRank[b.sev]));
+
+  el.innerHTML=bar+groups.map(g=>
+    '<div class="fgroup" data-grouptag="'+g.tag+'">'+
+    '<div class="fgh"><span class="sev" style="background:'+SEVC[g.worst]+'"></span>'+
+    '<b>'+g.tag+'</b><span class="fgc">'+g.items.length+(g.items.length===1?' item':' items')+'</span></div>'+
+    g.items.map(f=>
+      '<div class="find'+(sel.kind==='find'&&sel.id===f.id?' sel':'')+'" data-find="'+f.id+'">'+
+      '<div class="fh"><span class="sev" style="background:'+SEVC[f.sev]+'"></span>'+
+      '<span class="ft">'+f.title+'</span><span class="fl">'+f.code+'</span></div>'+
+      '<div class="fd">'+f.detail+'</div>'+
+      (f.fix?'<div class="fx">'+f.fix+'</div>':'')+
+      (f.ref?'<div class="fd" style="color:var(--dim2);font-size:var(--fs-md);margin-top:4px">'+f.ref+'</div>':'')+
+      '</div>').join('')+
     '</div>').join('');
+
   el.querySelectorAll('[data-find]').forEach(d=>d.onclick=()=>{
     const f=R.findings.find(x=>x.id===d.dataset.find);
     sel={kind:'find',id:f.id};
@@ -2887,7 +2969,7 @@ function buildResultsPane(){
     kv('Largest movement',fmt(s.maxMove,0)+' mm')+
     '<div class="ubar"><i style="width:'+Math.min(100,s.maxUtil*100)+'%;background:'+
     ramp(s.maxUtil)+'"></i></div>'+
-    '<div style="text-align:right;font-family:var(--mono);font-size:10px;color:var(--dim2)">peak utilisation '+
+    '<div style="text-align:right;font-family:var(--mono);font-size:var(--fs-md);color:var(--dim2)">peak utilisation '+
     fmt(100*s.maxUtil,0)+'%</div>');
 
   out+=cardF('rB','Expansion sections','',
@@ -2896,7 +2978,7 @@ function buildResultsPane(){
     R.sections.map(S=>{
       const dn=[...new Set(S.edges.map(e=>e.dn))].join('/');
       const tags=[...new Set(S.edges.map(e=>REF[e.id]||'').filter(Boolean))].slice(0,2).join(' ');
-      return '<tr data-sec="'+S.id+'"><td>'+S.id+(tags?'<br><span style="font-family:var(--mono);font-size:9px;color:var(--dim2)">'+tags+'</span>':'')+'</td><td>'+fmt(S.L,0)+'</td><td>'+dn+'</td>'+
+      return '<tr data-sec="'+S.id+'"><td>'+S.id+(tags?'<br><span style="font-family:var(--mono);font-size:var(--fs-sm);color:var(--dim2)">'+tags+'</span>':'')+'</td><td>'+fmt(S.L,0)+'</td><td>'+dn+'</td>'+
         '<td>'+fmt(S.f,2)+'</td><td>'+fmt(S.LF,0)+'</td>'+
         '<td class="'+cls(S.util)+'">'+fmt(S.sig,0)+'</td>'+
         '<td class="'+cls(S.util)+'">'+fmt(100*S.util,0)+'</td>'+
@@ -2923,7 +3005,7 @@ function buildResultsPane(){
     '<th>\u0394lat</th><th>L avail</th><th>L req</th><th>L(all)</th><th>U%</th></tr></thead><tbody>'+
     R.branchReport.map(b=>{
       const er=R.ER[b.e], Lall=er&&er.branchLall;
-      const lallCls=Lall&&b.Lb>2*Lall?'bad':(Lall&&b.Lb>1.5*Lall?'watch':'ok');
+      const lallCls=Lall&&b.Lb>Lall?'bad':(Lall&&b.Lb>0.75*Lall?'watch':'ok');
       return '<tr data-node="'+b.n+'"><td>'+(M.nodes[b.n].label||b.n.slice(1,5))+
         '</td><td>'+b.dn+'</td><td>'+fmt(b.lat,0)+'</td><td>'+fmt(b.Lb,1)+'</td>'+
         '<td class="'+(b.Lb<b.Lreq?'bad':'ok')+'">'+fmt(b.Lreq,1)+'</td>'+
@@ -2998,7 +3080,7 @@ $('btnNew').onclick=()=>{
   if(Object.keys(M.edges).length>0&&!confirm('Start a new project? Unsaved changes will be lost.'))return;
   M=blankModel(); M.meta.name='Untitled network'; $('projName').value=M.meta.name;
   _hudBuilt=false;
-  buildProjectPane(); snapshot(); run(); fit(); syncMapUI();
+  buildProjectPane(); snapshot(); run(); fit();
   toast('New project started');
 };
 $('btnSave').onclick=saveFile;
@@ -3010,17 +3092,11 @@ $('fileIn').onchange=ev=>{
     const o=JSON.parse(rd.result);
     M=Object.assign(blankModel(),o);M.z={p:[],i:-1};
     $('projName').value=M.meta.name||'Network';
-    buildProjectPane();snapshot();run();fit();syncMapUI();toast('Opened '+f.name);
+    buildProjectPane();snapshot();run();fit();toast('Opened '+f.name);
   }catch(e){toast('Could not read that file');}};
   rd.readAsText(f); ev.target.value='';
 };
 $('projName').onchange=e=>{M.meta.name=e.target.value;};
-$('btnMap').onclick=()=>{
-  if(!M.view.map&&!M.geo){openAnchorModal();return;}
-  M.view.map=!M.view.map; syncMapUI();
-  if(M.view.map)prewarmTiles();
-};
-$('btnAnchor').onclick=()=>openAnchorModal();
 function csv(kind){
   let rows=[];
   if(kind==='sections'){
@@ -3041,77 +3117,6 @@ function csv(kind){
 }
 
 /* ---- MODALS ----------------------------------------------------------- */
-
-function openAnchorModal(){
-  const noGeo=!M.geo;
-  const hasNodes=Object.keys(M.nodes).length>0;
-  modal('Anchor sketch to real-world location',`
-<p style="margin-bottom:12px;color:var(--dim)">Setting an anchor lets the OSM map align with your sketch.
-Pick a node to anchor (or use the sketch origin) then enter a location.</p>
-<div class="row w" style="margin-bottom:8px">
-  <label>Anchor sketch point<small>world coords in metres</small></label>
-  <div style="display:flex;gap:6px">
-    <input class="fld" id="ancX" type="number" step="0.5" value="${M.geo?M.geo.wx:0}" style="width:80px" placeholder="X">
-    <input class="fld" id="ancY" type="number" step="0.5" value="${M.geo?M.geo.wy:0}" style="width:80px" placeholder="Y">
-  </div>
-</div>
-<div class="row w" style="margin-bottom:14px">
-  <label>Corresponds to<small>search or enter lat, lon</small></label>
-  <div style="display:flex;gap:6px;flex:1">
-    <input class="fld" id="ancSearch" type="text" value="${M.geo?M.geo.lat.toFixed(5)+', '+M.geo.lon.toFixed(5):''}"
-      placeholder="town name or lat, lon" style="flex:1;text-align:left">
-    <button class="btn acc" id="ancGo" style="width:auto;padding:5px 10px">Search</button>
-  </div>
-</div>
-<div id="ancResult" style="font-size:11px;color:var(--dim);min-height:18px;margin-bottom:10px"></div>
-<div class="note">After anchoring, the OSM map will align to your sketch. Pan and zoom to check it looks right, then click 
-<b>Anchor here</b> on a different node to adjust. The anchor is saved with the project file.</div>
-`,
-`<button class="btn" onclick="closeModal()">Cancel</button>
- <button class="btn warn" id="ancClear" style="${M.geo?'':'display:none'}">Clear anchor</button>
- <button class="btn acc" id="ancSet">Set anchor</button>`);
-
-  const res=$('ancResult');
-  let pendingLat=M.geo?M.geo.lat:null, pendingLon=M.geo?M.geo.lon:null;
-
-  $('ancGo').onclick=async()=>{
-    const q=$('ancSearch').value.trim(); if(!q)return;
-    res.textContent='Searching\u2026';
-    /* check if it's already a lat,lon pair */
-    const parts=q.split(/[,\s]+/);
-    if(parts.length===2&&!isNaN(parseFloat(parts[0]))&&!isNaN(parseFloat(parts[1]))){
-      pendingLat=parseFloat(parts[0]); pendingLon=parseFloat(parts[1]);
-      res.textContent='\u2713 '+pendingLat.toFixed(5)+', '+pendingLon.toFixed(5);
-    } else {
-      try{
-        const r=await geocode(q);
-        if(!r){res.textContent='Not found \u2014 try a more specific name or enter lat, lon directly.';return;}
-        pendingLat=r.lat; pendingLon=r.lon;
-        $('ancSearch').value=pendingLat.toFixed(5)+', '+pendingLon.toFixed(5);
-        res.textContent='\u2713 '+r.name.slice(0,90);
-      }catch(e){res.textContent='Network error \u2014 enter lat, lon manually.';}
-    }
-  };
-  $('ancSet').onclick=()=>{
-    if(pendingLat===null){res.textContent='Please search for a location first.';return;}
-    const wx=parseFloat($('ancX').value)||0, wy=parseFloat($('ancY').value)||0;
-    setGeoAnchor(pendingLat,pendingLon,wx,wy);
-    M.view.map=true; syncMapUI();
-    closeModal(); toast('Anchor set \u2014 OSM map enabled');
-  };
-  if($('ancClear'))$('ancClear').onclick=()=>{M.geo=null;updateGeoChip();M.view.map=false;syncMapUI();closeModal();toast('Anchor cleared');};
-
-  $('ancSearch').onkeydown=e=>{if(e.key==='Enter')$('ancGo').click();};
-}
-
-function syncMapUI(){
-  const btn=$('btnMap'), attr=$('tileAttr'), ancBtn=$('btnAnchor');
-  if(btn){btn.classList.toggle('on',!!M.view.map);}
-  if(attr){attr.className='tileattr'+(M.view.map?' on':'');}
-  if(ancBtn){ancBtn.style.display=M.geo?'':'none';}
-  updateGeoChip();
-  render();
-}
 
 function modal(title,body,footer){
   $('modal').innerHTML='<header><h3>'+title+'</h3><button class="x" onclick="closeModal()">\u00d7</button></header>'+
@@ -3178,7 +3183,6 @@ report. Load a template first if you want to explore before drawing your own.</p
 <div class="kitem"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16L16 6l4 4L10 20z"/></svg><span><kbd>X</kbd> Erase \u2014 click a node or pipe to delete it</span></div>
 <div class="kitem"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/></svg><span><kbd>A</kbd> Anchor \u2014 stamp a fixed point on a node</span></div>
 <div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg><span><kbd>F</kbd> Free end</span></div>
-<div class="kitem"><svg viewBox="0 0 24 24"><path d="M6 20V11a6 6 0 0112 0v9"/></svg><span><kbd>U</kbd> Loop marker \u2014 flag an existing node as an expansion element (no geometry)</span></div>
 <div class="kitem"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14M8 12h8"/></svg><span><kbd>E</kbd> E-comp compensator</span></div>
 <div class="kitem"><svg viewBox="0 0 24 24"><path d="M5 6l14 12M5 18L19 6"/></svg><span><kbd>W</kbd> Valve</span></div>
 <div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M9 15l6-6"/></svg><span>Clear marker \u2014 back to automatic role</span></div>
@@ -3193,7 +3197,7 @@ pad-fit and offset-length checks apply to it directly. Use either tool two ways:
 <div class="kitem"><span>&nbsp;</span><span>Mid-route: press <kbd>O</kbd> or <kbd>Z</kbd> while actively drawing to append it at the current point, then carry on drawing</span></div>
 <div class="kitem"><kbd>Shift</kbd><span>held on the click (or the key press) puts the detour on the other side</span></div>
 </div>
-<p style="margin-top:10px;color:var(--dim2);font-size:11px">Both tools stay armed after use, so you can click several pipes in a row. Default
+<p style="margin-top:10px;color:var(--dim2);font-size:var(--fs-xl)">Both tools stay armed after use, so you can click several pipes in a row. Default
 dimensions scale with pipe size and are a starting point \u2014 drag the new nodes, or edit their
 coordinates on the Element tab, to resize.</p>
 
@@ -3226,7 +3230,7 @@ coordinates on the Element tab, to resize.</p>
 <div class="kitem"><svg viewBox="0 0 24 24"><path d="M4 4l16 16M4 20L20 4" stroke="#2a2a25"/></svg><span>Cross \u2014 valve</span></div>
 <div class="kitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="#5a5a52"/></svg><span>Small dot \u2014 weld / pass-through, no expansion effect</span></div>
 </div>
-<p style="margin-top:14px;color:var(--dim2);font-size:11px">The <b>Method &amp; limits</b> button covers what is actually calculated, the formulas used,
+<p style="margin-top:14px;color:var(--dim2);font-size:var(--fs-xl)">The <b>Method &amp; limits</b> button covers what is actually calculated, the formulas used,
 and what the tool does not attempt \u2014 worth reading before you rely on a result.</p>`;
 
   return `
@@ -3409,7 +3413,7 @@ $('btnTemplates').onclick=()=>{
   modal('Start from a template','<div class="tplgrid">'+TEMPLATES.map((t,i)=>
     '<button class="tpl" data-tpl="'+i+'"><svg viewBox="0 0 120 60">'+t.svg+
     '</svg><b>'+t.name+'</b><span>'+t.sub+'</span></button>').join('')+'</div>'+
-    '<p style="margin-top:14px;color:var(--dim2);font-size:11px">Loading a template replaces the current sketch. '+
+    '<p style="margin-top:14px;color:var(--dim2);font-size:var(--fs-xl)">Loading a template replaces the current sketch. '+
     'Operating conditions, soil and design class are kept.</p>',
     '<button class="btn" onclick="closeModal()">Cancel</button>');
   document.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{
@@ -3430,42 +3434,68 @@ function report(){
     '</td>').join('')+'</tr>').join('')+'</tbody></table>';
   const dl=(o)=>'<dl>'+Object.entries(o).map(([k,v])=>'<dt>'+k+'</dt><dd>'+v+'</dd>').join('')+'</dl>';
 
-  const secRows=R.sections.map(S=>[S.id,fmt(S.L,1),[...new Set(S.edges.map(e=>e.dn))].join('/'),
+  const secRows=R.sections.map(S=>{
+    const tags=[...new Set(S.edges.map(e=>REF[e.id]||'').filter(Boolean))];
+    const tagTxt=tags.length?(tags[0]+(tags.length>1?'\u2013'+tags[tags.length-1]:'')):'';
+    return[S.id+(tagTxt?'<br><span style="color:#8a8a78">'+tagTxt+'</span>':''),
+    fmt(S.L,1),[...new Set(S.edges.map(e=>e.dn))].join('/'),
     [...new Set(S.edges.map(e=>e.series))].join('/'),fmt(S.f,2),fmt(S.As,0),fmt(S.LF,1),
     fmt(S.lock,1),fmt(S.sig,0),fmt(100*S.util,0)+'%',fmt(S.d0,0),fmt(S.d1,0),
-    S.e0+'/'+S.e1]);
-  const bendRows=R.bendReport.map(b=>[M.nodes[b.n].label||b.n.slice(1,6),fmt(b.dev,0)+'&deg;',
+    S.e0+'/'+S.e1];});
+  const bendRows=R.bendReport.map(b=>{
+    const tag=REF[b.n]||''; const lbl=M.nodes[b.n].label;
+    const nameCell=(tag?tag:b.n.slice(1,6))+(lbl?'<br><span style="color:#8a8a78">'+lbl+'</span>':'');
+    return[nameCell,fmt(b.dev,0)+'&deg;',
     fmt(b.sig,0),fmt(b.dR,0),b.layers,b.layers*40,fmt(b.F,1),
     (b.fit?'':'<b class="bad">')+fmt(b.avail,1)+(b.fit?'':'</b>'),fmt(b.trench,2),
-    fmt(Math.ceil(b.F*2)/2,1)+' / '+fmt(Math.ceil(b.F)/2,1)+' / '+fmt(Math.ceil(b.F/2)/2,1)]);
-  const brRows=R.branchReport.map(b=>[M.nodes[b.n].label||b.n.slice(1,6),'DN'+b.dn,
+    fmt(Math.ceil(b.F*2)/2,1)+' / '+fmt(Math.ceil(b.F)/2,1)+' / '+fmt(Math.ceil(b.F/2)/2,1)];});
+  const brRows=R.branchReport.map(b=>{
+    const tag=REF[b.n]||''; const lbl=M.nodes[b.n].label;
+    const nameCell=(tag?tag:b.n.slice(1,6))+(lbl?'<br><span style="color:#8a8a78">'+lbl+'</span>':'');
+    return[nameCell,'DN'+b.dn,
     fmt(b.lat,0),fmt(b.Lb,1),fmt(b.Lreq,1),fmt(b.sigBend,0),fmt(b.dsBr,0),
-    fmt(100*b.util,0)+'%',b.Lb<b.Lreq?'<b class="bad">Add bend</b>':'OK']);
-  const teeRows=R.teeReport.map(t=>[M.nodes[t.n].label||t.n.slice(1,6),t.scf,fmt(t.sig,0),
+    fmt(100*b.util,0)+'%',b.Lb<b.Lreq?'<b class="bad">Add bend</b>':'OK'];});
+  const teeRows=R.teeReport.map(t=>{
+    const tag=REF[t.n]||''; const lbl=M.nodes[t.n].label;
+    const nameCell=(tag?tag:t.n.slice(1,6))+(lbl?'<br><span style="color:#8a8a78">'+lbl+'</span>':'');
+    return[nameCell,t.scf,fmt(t.sig,0),
     fmt(t.move,0),fmt(t.dsRun,0),fmt(A.dsFat,0),fmt(100*t.util,0)+'%',
-    t.util>1?'<b class="bad">Reinforce</b>':t.util>0.85?'<b class="warn">Review</b>':'OK']);
+    t.util>1?'<b class="bad">Reinforce</b>':t.util>0.85?'<b class="warn">Review</b>':'OK'];});
   const anchors=Object.values(M.nodes).filter(n=>R.NR[n.id]&&R.NR[n.id].role==='anchor')
-    .map(n=>[n.label||n.id.slice(1,6),fmt(n.x,1)+', '+fmt(n.y,1),fmt(R.NR[n.id].sig,0),
-      fmt(R.NR[n.id].anchorF,0)]);
-  const findRows=R.findings.map(f=>['<span class="sev '+f.sev+'">'+f.sev+'</span>',f.code,
+    .map(n=>{
+      const tag=REF[n.id]||'';
+      const nameCell=(tag?tag:n.id.slice(1,6))+(n.label?'<br><span style="color:#8a8a78">'+n.label+'</span>':'');
+      return[nameCell,fmt(n.x,1)+', '+fmt(n.y,1),fmt(R.NR[n.id].sig,0),
+      fmt(R.NR[n.id].anchorF,0)];});
+  const findTag=f=>{
+    if(!f.loc)return '';
+    if(f.loc.k==='node'||f.loc.k==='edge')return REF[f.loc.id]||'';
+    if(f.loc.k==='section'){
+      const S=R.sections.find(s=>s.id===f.loc.id);
+      if(S&&S.edges&&S.edges.length)return REF[S.edges[Math.floor(S.edges.length/2)].id]||'';
+    }
+    return '';
+  };
+  const findRows=R.findings.map(f=>['<span class="sev '+f.sev+'">'+f.sev+'</span>',
+    f.code+(findTag(f)?'<br><span style="color:#8a8a78">'+findTag(f)+'</span>':''),
     '<b>'+f.title+'</b><br>'+f.detail+(f.fix?'<br><i>'+f.fix+'</i>':''),f.ref]);
 
   const html='<!doctype html><html><head><meta charset="utf-8"><title>'+
   (m.name||'Network')+' \u2014 EN 13941 screening</title><style>'+
   '@page{size:A4;margin:16mm 14mm}'+
-  'body{font:11px/1.5 "IBM Plex Sans",system-ui,sans-serif;color:#16202b;max-width:900px;margin:0 auto;padding:22px}'+
+  'body{font:11px/1.5 "Segoe UI",system-ui,sans-serif;color:#16202b;max-width:900px;margin:0 auto;padding:22px}'+
   'h1{font-size:19px;letter-spacing:.03em;margin:0 0 2px}'+
   'h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;margin:26px 0 8px;padding-bottom:5px;border-bottom:1.5px solid #16202b}'+
-  'h3{font-size:11.5px;margin:16px 0 5px;color:#2a2a25}'+
+  'h3{font-size:12px;margin:16px 0 5px;color:#2a2a25}'+
   '.sub{color:#5b6b7d;font-size:11px;margin-bottom:16px}'+
   '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #16202b;padding-bottom:9px}'+
-  '.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}'+
-  'table{width:100%;border-collapse:collapse;font-family:"IBM Plex Mono",monospace;font-size:9.5px;margin-bottom:10px}'+
+  '.mono{font-family:"Consolas","Segoe UI Mono",monospace;font-variant-numeric:tabular-nums}'+
+  'table{width:100%;border-collapse:collapse;font-family:"Consolas","Segoe UI Mono",monospace;font-size:9.5px;margin-bottom:10px}'+
   'th{background:#f0f0ea;text-align:right;padding:4px 5px;border-bottom:1px solid #c7c7bd;font-weight:600;white-space:nowrap}'+
   'td{text-align:right;padding:3.5px 5px;border-bottom:1px solid #e3e9ef;vertical-align:top}'+
   'th:first-child,td.l{text-align:left}'+
   'dl{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;margin:0 0 12px;font-size:11px}'+
-  'dt{color:#5b6b7d}dd{margin:0;font-family:"IBM Plex Mono",monospace}'+
+  'dt{color:#5b6b7d}dd{margin:0;font-family:"Consolas","Segoe UI Mono",monospace}'+
   '.two{display:grid;grid-template-columns:1fr 1fr;gap:0 30px}'+
   '.sev{font-size:8.5px;text-transform:uppercase;letter-spacing:.08em;padding:1px 5px;border-radius:2px;color:#fff}'+
   '.sev.critical{background:#8f1f17}.sev.high{background:#c1531c}.sev.watch{background:#a8790a}'+
@@ -3532,7 +3562,7 @@ function report(){
       ' to review, '+R.tally.info+' informative'})+
 
   '<h2>3 &nbsp; Expansion sections</h2>'+
-  T(['Sec','L m','DN','Ser','F kN/m','As mm\u00b2','LF m','Locked m','\u03c3 MPa','Util','\u03941 mm','\u03942 mm','Ends'],secRows)+
+  T(['Section','L m','DN','Ser','F kN/m','As mm\u00b2','LF m','Locked m','\u03c3 MPa','Util','\u03941 mm','\u03942 mm','Ends'],secRows)+
 
   (bendRows.length?'<h2>4 &nbsp; Expansion points and cushions</h2>'+
    T(['Node','Angle','\u03c3 MPa','\u0394R mm','Layers','t mm','F m','Clear m','Trench m','Layer lengths m'],bendRows)+
@@ -3583,12 +3613,13 @@ function report(){
   w.document.write(html);w.document.close();
 }
 $('btnReport').onclick=report;
+/* Detour direction picker */
+/* Detour direction: Shift held on click/key flips to the other side */
 
 /* ---- INIT ------------------------------------------------------------- */
 window.addEventListener('resize',resize);
 buildRail();
 buildProjectPane();
-syncMapUI();
 TEMPLATES[1].build();
 M.meta.name='Example \u2014 distribution street';
 $('projName').value=M.meta.name;
