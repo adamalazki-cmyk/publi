@@ -3,8 +3,8 @@ const map = L.map('map', {
   zoomControl: false
 }).setView([54.5, -3], 6);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap & CARTO',
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2y6c_1_bcbe2bde9d1ea199a7c53f0c', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
   updateWhenZooming: false,
   updateWhenIdle: true
 }).addTo(map);
