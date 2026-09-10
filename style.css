@@ -895,6 +895,543 @@ input[type="checkbox"] {
   text-decoration: underline;
 }
 
+/* ===========================================
+   CONTRIBUTE MODAL
+   =========================================== */
+
+/* Wide variant — needs room for the project table */
+.modal-content.modal-wide {
+  width: 1080px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 24px 24px 20px;
+}
+
+.contribute-scope {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  color: rgba(229, 231, 235, 0.92);
+}
+
+.contribute-scope strong {
+  color: #f59e0b;
+}
+
+.contribute-hint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+/* Table scrolls horizontally inside its own container */
+.contribute-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.contribute-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 1180px;
+}
+
+.contribute-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  color: rgba(226, 232, 240, 0.72);
+  white-space: nowrap;
+
+  background: rgba(32, 32, 32, 0.96);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.contribute-table td {
+  padding: 5px 6px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.contribute-table tr:last-child td {
+  border-bottom: none;
+}
+
+.contribute-table .col-num,
+.contribute-table .col-action {
+  width: 34px;
+  text-align: center;
+}
+
+.contribute-row-num {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+/* Inputs inside the table */
+.contribute-table input,
+.contribute-table select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 7px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.contribute-table input:focus,
+.contribute-table select:focus,
+.contribute-field input:focus,
+.contribute-field textarea:focus {
+  outline: none;
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.contribute-table input::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.contribute-table select option {
+  background: #1f1f1f;
+  color: #e5e7eb;
+}
+
+/* Column widths — keep the table readable while scrolling */
+.contribute-table .cell-name    { min-width: 150px; }
+.contribute-table .cell-loc     { min-width: 150px; }
+.contribute-table .cell-status  { min-width: 130px; }
+.contribute-table .cell-op      { min-width: 120px; }
+.contribute-table .cell-type    { min-width: 120px; }
+.contribute-table .cell-cap     { min-width: 90px; }
+.contribute-table .cell-flow    { min-width: 90px; }
+.contribute-table .cell-ref     { min-width: 100px; }
+.contribute-table .cell-mfr     { min-width: 120px; }
+.contribute-table .cell-year    { min-width: 95px; }
+.contribute-table .cell-img     { min-width: 130px; }
+
+/* Remove-row button */
+.contribute-remove-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+
+  font-size: 15px;
+  line-height: 1;
+  color: rgba(226, 232, 240, 0.6);
+
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.contribute-remove-btn:hover {
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.12);
+}
+
+.contribute-remove-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.contribute-remove-btn:disabled:hover {
+  color: rgba(226, 232, 240, 0.6);
+  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Add row */
+.contribute-add-btn {
+  margin-top: 10px;
+  padding: 8px 14px;
+
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #e5e7eb;
+
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.contribute-add-btn:hover {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+/* Sections below the table */
+.contribute-section {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.contribute-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.contribute-section p {
+  font-size: 13px;
+  margin: 0 0 12px 0;
+}
+
+/* Consent checkboxes */
+.contribute-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  margin-bottom: 10px;
+  padding: 10px 12px;
+
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(229, 231, 235, 0.88);
+
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.contribute-check:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.contribute-check input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 2px 0 0 0;
+  accent-color: #f59e0b;
+  cursor: pointer;
+}
+
+/* Labelled fields */
+.contribute-field {
+  display: block;
+  margin-top: 12px;
+}
+
+.contribute-field > span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.75);
+}
+
+.contribute-field input,
+.contribute-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+
+  font-size: 13px;
+  font-family: inherit;
+  color: #e5e7eb;
+
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.contribute-field textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.contribute-field input::placeholder,
+.contribute-field textarea::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.contribute-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.contribute-grid .contribute-field {
+  margin-top: 0;
+}
+
+.contribute-photo-note {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.contribute-photo-note strong {
+  color: rgba(226, 232, 240, 0.9);
+}
+
+/* ---- Send options ---- */
+.contribute-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.contribute-option {
+  display: flex;
+  flex-direction: column;
+
+  padding: 14px 14px 16px;
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.contribute-option-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 7px;
+}
+
+.contribute-option-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #1a1206;
+  background: #f59e0b;
+  border-radius: 50%;
+}
+
+.contribute-option-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.contribute-option p {
+  flex: 1;
+  margin: 0 0 12px 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.contribute-submit-btn,
+.contribute-copy-btn {
+  width: 100%;
+  padding: 11px 16px;
+
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.contribute-submit-btn {
+  color: #1a1206;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.contribute-submit-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* Copy button reads as a genuine alternative, not a throwaway */
+.contribute-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.contribute-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+.contribute-copy-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.contribute-copy-btn.copied {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.contribute-status {
+  margin-top: 12px;
+  min-height: 18px;
+  font-size: 12.5px;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.contribute-status.is-error {
+  color: #fb7185;
+}
+
+/* Success state gets a panel so the paste instruction is unmissable */
+.contribute-status.is-success {
+  padding: 11px 13px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6ee7b7;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  border-radius: 9px;
+}
+
+.contribute-status a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ---- Mobile: table collapses into stacked cards ---- */
+@media (max-width: 768px) {
+  .modal-content.modal-wide {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    padding: 20px 16px 24px;
+  }
+
+  .contribute-table-wrap {
+    overflow-x: visible;
+    border: none;
+    background: none;
+  }
+
+  .contribute-table {
+    min-width: 0;
+    display: block;
+  }
+
+  .contribute-table thead {
+    display: none;
+  }
+
+  .contribute-table tbody,
+  .contribute-table tr,
+  .contribute-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .contribute-table tr {
+    position: relative;
+    margin-bottom: 14px;
+    padding: 12px 12px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .contribute-table td {
+    padding: 6px 0;
+    border-bottom: none;
+  }
+
+  /* Show the header text as a label above each field */
+  .contribute-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(226, 232, 240, 0.7);
+  }
+
+  .contribute-table .col-num {
+    width: auto;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f59e0b;
+    padding-bottom: 4px;
+  }
+
+  .contribute-table .col-action {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: auto;
+    padding: 0;
+  }
+
+  .contribute-table input,
+  .contribute-table select {
+    font-size: 16px; /* prevents iOS zoom-on-focus */
+    padding: 9px 10px;
+  }
+
+  .contribute-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contribute-options {
+    grid-template-columns: 1fr;
+  }
+}
+
 .panel-footer {
   display: flex;
   gap: 10px;

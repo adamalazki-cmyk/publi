@@ -767,6 +767,299 @@ modal.addEventListener('click', (e) => {
 });
 
 // ----------------------
+// CONTRIBUTE A PROJECT
+// ----------------------
+
+(function initContribute() {
+
+  const SUBMISSION_EMAIL = "info@ukheatpumpmap.com";
+
+  // Column definitions — order here drives both the table and the email body
+  const FIELDS = [
+    { key: "name",         label: "Project Name",       cell: "cell-name",   placeholder: "e.g. Queens Quay" },
+    { key: "location",     label: "Site Address / Location", cell: "cell-loc",  placeholder: "Town or full address" },
+    { key: "status",       label: "Status",             cell: "cell-status", type: "select",
+      options: ["", "Planned", "Under Construction", "Operational"] },
+    { key: "operator",     label: "Operator",           cell: "cell-op",     placeholder: "" },
+    { key: "type",         label: "Type (Heat Source)", cell: "cell-type",   placeholder: "e.g. River water" },
+    { key: "capacity",     label: "Capacity (kW)",      cell: "cell-cap",    placeholder: "e.g. 2500" },
+    { key: "flowTemp",     label: "Flow Temp (°C)",     cell: "cell-flow",   placeholder: "e.g. 75" },
+    { key: "refrigerant",  label: "Refrigerant",        cell: "cell-ref",    placeholder: "e.g. Ammonia" },
+    { key: "manufacturer", label: "Manufacturer",       cell: "cell-mfr",    placeholder: "" },
+    { key: "year",         label: "Year (Commissioned / Planned)", cell: "cell-year", placeholder: "e.g. 2027" },
+    { key: "image",        label: "Image / photo",      cell: "cell-img",    placeholder: "Link, or attach to email" },
+  ];
+
+  const contributeBtn    = document.getElementById("contributeBtn");
+  const contributeModal  = document.getElementById("contributeModal");
+  const contributeClose  = document.getElementById("contributeClose");
+  const rowsBody         = document.getElementById("contributeRows");
+  const addRowBtn        = document.getElementById("addProjectRow");
+  const submitBtn        = document.getElementById("contributeSubmit");
+  const copyBtn          = document.getElementById("contributeCopy");
+  const copyLabel        = document.getElementById("contributeCopyLabel");
+  const statusEl         = document.getElementById("contributeStatus");
+
+  if (!contributeBtn || !contributeModal || !rowsBody) return;
+
+  const COPY_LABEL_DEFAULT = copyLabel.textContent;
+  let copyResetTimer = null;
+
+  function createRow() {
+    const tr = document.createElement("tr");
+
+    const numTd = document.createElement("td");
+    numTd.className = "col-num";
+    numTd.innerHTML = '<span class="contribute-row-num"></span>';
+    tr.appendChild(numTd);
+
+    FIELDS.forEach(field => {
+      const td = document.createElement("td");
+      td.className = field.cell;
+      td.setAttribute("data-label", field.label);
+
+      let input;
+      if (field.type === "select") {
+        input = document.createElement("select");
+        field.options.forEach(opt => {
+          const option = document.createElement("option");
+          option.value = opt;
+          option.textContent = opt === "" ? "—" : opt;
+          input.appendChild(option);
+        });
+      } else {
+        input = document.createElement("input");
+        input.type = "text";
+        if (field.placeholder) input.placeholder = field.placeholder;
+      }
+
+      input.setAttribute("data-key", field.key);
+      input.setAttribute("aria-label", field.label);
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    const actionTd = document.createElement("td");
+    actionTd.className = "col-action";
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "contribute-remove-btn";
+    removeBtn.setAttribute("aria-label", "Remove this project");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      tr.remove();
+      renumberRows();
+      clearStatus();
+    });
+    actionTd.appendChild(removeBtn);
+    tr.appendChild(actionTd);
+
+    return tr;
+  }
+
+  function renumberRows() {
+    const rows = Array.from(rowsBody.querySelectorAll("tr"));
+    rows.forEach((tr, i) => {
+      const numEl = tr.querySelector(".contribute-row-num");
+      if (numEl) numEl.textContent = i + 1;
+      // Never let the last remaining row be removed
+      const btn = tr.querySelector(".contribute-remove-btn");
+      if (btn) btn.disabled = rows.length === 1;
+    });
+  }
+
+  function addRow(focus) {
+    const tr = createRow();
+    rowsBody.appendChild(tr);
+    renumberRows();
+    if (focus) {
+      const first = tr.querySelector("input");
+      if (first) first.focus();
+    }
+  }
+
+  function readRows() {
+    return Array.from(rowsBody.querySelectorAll("tr")).map((tr, i) => {
+      const data = { _row: i + 1 };  // keep the visible row number for error messages
+      tr.querySelectorAll("[data-key]").forEach(input => {
+        data[input.getAttribute("data-key")] = input.value.trim();
+      });
+      return data;
+    }).filter(row => FIELDS.some(f => row[f.key]));  // drop entirely empty rows
+  }
+
+  function buildSubmissionText() {
+    const projects = readRows();
+    const sources  = document.getElementById("contributeSources").value.trim();
+    const name     = document.getElementById("contributeName").value.trim();
+    const email    = document.getElementById("contributeEmail").value.trim();
+    const org      = document.getElementById("contributeOrg").value.trim();
+    const isPublic = document.getElementById("consentPublic").checked;
+    const hasConsent = document.getElementById("consentObtained").checked;
+
+    const lines = [];
+
+    projects.forEach((project, i) => {
+      lines.push(`PROJECT ${i + 1}`);
+      FIELDS.forEach(field => {
+        if (project[field.key]) {
+          lines.push(`  ${field.label}: ${project[field.key]}`);
+        }
+      });
+      lines.push("");
+    });
+
+    lines.push("SOURCES & CONSENT");
+    lines.push(`  All information is in the public domain: ${isPublic ? "Yes" : "No"}`);
+    lines.push(`  Consent obtained from owner/operator/developer: ${hasConsent ? "Yes" : "No"}`);
+    if (sources) lines.push(`  Sources / evidence: ${sources}`);
+    lines.push("");
+
+    if (name || email || org) {
+      lines.push("SUBMITTED BY");
+      if (name)  lines.push(`  Name: ${name}`);
+      if (email) lines.push(`  Email: ${email}`);
+      if (org)   lines.push(`  Organisation: ${org}`);
+    } else {
+      lines.push("SUBMITTED BY: no contact details provided");
+    }
+
+    return { text: lines.join("\n"), count: projects.length };
+  }
+
+  function setStatus(message, isError) {
+    statusEl.textContent = message;
+    statusEl.classList.toggle("is-error", !!isError);
+    statusEl.classList.remove("is-success");
+  }
+
+  // Success uses markup so the destination address stays clickable
+  function setStatusSuccess(html) {
+    statusEl.innerHTML = html;
+    statusEl.classList.remove("is-error");
+    statusEl.classList.add("is-success");
+  }
+
+  function clearStatus() {
+    statusEl.textContent = "";
+    statusEl.classList.remove("is-error", "is-success");
+  }
+
+  // Shared validation for both submit and copy
+  function validate() {
+    const projects = readRows();
+
+    if (projects.length === 0) {
+      setStatus("Please add at least one project before submitting.", true);
+      return null;
+    }
+
+    const unnamed = projects.find(p => !p.name);
+    if (unnamed) {
+      setStatus(`Project ${unnamed._row} needs a project name.`, true);
+      return null;
+    }
+
+    const isPublic   = document.getElementById("consentPublic").checked;
+    const hasConsent = document.getElementById("consentObtained").checked;
+    if (!isPublic && !hasConsent) {
+      setStatus("Please confirm whether the information is public, or that you have consent to share it.", true);
+      return null;
+    }
+
+    return buildSubmissionText();
+  }
+
+  function openModal() {
+    contributeModal.classList.remove("hidden");
+    if (!isMobile()) {
+      document.getElementById("app").classList.add("blurred");
+    }
+    if (!rowsBody.querySelector("tr")) addRow(false);
+  }
+
+  function closeModal() {
+    contributeModal.classList.add("hidden");
+    document.getElementById("app").classList.remove("blurred");
+  }
+
+  // ---- Wire up ----
+
+  addRow(false);
+
+  contributeBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    openModal();
+  });
+
+  contributeClose.addEventListener("click", closeModal);
+
+  contributeModal.addEventListener("click", (e) => {
+    if (e.target === contributeModal) closeModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !contributeModal.classList.contains("hidden")) {
+      closeModal();
+    }
+  });
+
+  addRowBtn.addEventListener("click", () => {
+    addRow(true);
+    clearStatus();
+  });
+
+  submitBtn.addEventListener("click", () => {
+    const result = validate();
+    if (!result) return;
+
+    const subject = result.count === 1
+      ? "Project submission — UK Heat Pump Map"
+      : `Project submission (${result.count} projects) — UK Heat Pump Map`;
+
+    const mailto = `mailto:${SUBMISSION_EMAIL}`
+      + `?subject=${encodeURIComponent(subject)}`
+      + `&body=${encodeURIComponent(result.text)}`;
+
+    // Very long submissions can be truncated by some mail clients
+    if (mailto.length > 6000) {
+      setStatus("That's a long submission — if your email looks cut off, use option 2 to copy and paste it instead.");
+    } else {
+      setStatus("Opening your email app… attach any photos before sending. Nothing happened? Use option 2 to copy and paste instead.");
+    }
+
+    window.location.href = mailto;
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    const result = validate();
+    if (!result) return;
+
+    try {
+      await copyTextToClipboard(`To: ${SUBMISSION_EMAIL}\n\n${result.text}`);
+
+      copyLabel.textContent = "Copied to clipboard";
+      copyBtn.classList.add("copied");
+
+      setStatusSuccess(
+        `Copied. Now paste it (⌘V / Ctrl+V) into a new email to `
+        + `<a href="mailto:${SUBMISSION_EMAIL}">${SUBMISSION_EMAIL}</a> `
+        + `and attach any photos.`
+      );
+
+      clearTimeout(copyResetTimer);
+      copyResetTimer = setTimeout(() => {
+        copyLabel.textContent = COPY_LABEL_DEFAULT;
+        copyBtn.classList.remove("copied");
+      }, 4000);
+    } catch (err) {
+      setStatus("Couldn't copy automatically — please select the text manually.", true);
+    }
+  });
+
+})();
+
+// ----------------------
 // MAP SEARCH
 // ----------------------
 
