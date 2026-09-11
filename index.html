@@ -20,7 +20,7 @@
   <meta property="og:title" content="UK Heat Pump Map" />
   <meta property="og:description" content="An interactive map of large-scale heat pump installations across the UK, covering district heating and industrial decarbonisation projects." />
   <meta property="og:image" content="https://www.ukheatpumpmap.com/preview.png" />
-  <meta property="og:url" content="https://www.ukheatpumpmap.com/" />
+  <meta property="og:url" content="https://www.ukheatpumpmap.com" />
   <meta property="og:type" content="website" />
 
   <!-- Twitter/X card -->
@@ -71,7 +71,7 @@
     <div id="panel">
 
       <nav class="side-nav" aria-label="Site navigation">
-        <a href="/" class="side-nav-link is-active" aria-label="Map" title="Map">
+        <a href="index.html" class="side-nav-link is-active" aria-label="Map" title="Map">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
             <path d="M9 3v15"></path>
@@ -86,6 +86,17 @@
           </svg>
           <span>Search</span>
         </button>
+        <a href="projects.html" class="side-nav-link" aria-label="Projects" title="Projects">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 6h13"></path>
+            <path d="M8 12h13"></path>
+            <path d="M8 18h13"></path>
+            <path d="M3 6h.01"></path>
+            <path d="M3 12h.01"></path>
+            <path d="M3 18h.01"></path>
+          </svg>
+          <span>Projects</span>
+        </a>
         <a href="about.html" class="side-nav-link" aria-label="About" title="About">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="9"></circle>
@@ -110,14 +121,6 @@
           </svg>
           <span>Terms</span>
         </a>
-        <button id="contributeBtn" class="side-nav-link side-nav-button" type="button" aria-label="Contribute a project" title="Contribute">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <path d="m7 8 5-5 5 5"></path>
-            <path d="M12 3v13"></path>
-          </svg>
-          <span>Contribute</span>
-        </button>
         <button id="contactBtn" class="side-nav-link side-nav-button" type="button" aria-label="Contact" title="Contact">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 6h16v12H4Z"></path>
@@ -355,139 +358,6 @@
     </p>
   </div>
 </div>
-
-<!-- Contribute Modal -->
-<div id="contributeModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contributeTitle">
-  <div class="modal-content modal-wide">
-
-    <button id="contributeClose" class="close-btn" type="button" aria-label="Close contribute form">×</button>
-
-    <h2 id="contributeTitle">Contribute a project</h2>
-
-    <p class="contribute-scope">
-      We're looking for <strong>large-scale heat pumps above 250&nbsp;kW</strong> serving
-      <strong>district heating</strong> or <strong>industrial heat</strong> schemes.
-      Domestic and small commercial installations are outside the scope of this map.
-    </p>
-
-    <p class="contribute-hint">
-      Add a row for each project. You don't need to complete every field — submit whatever you have.
-    </p>
-
-    <div class="contribute-table-wrap">
-      <table class="contribute-table">
-        <thead>
-          <tr>
-            <th class="col-num">#</th>
-            <th>Project Name</th>
-            <th>Site Address / Location</th>
-            <th>Status</th>
-            <th>Operator</th>
-            <th>Type (Heat Source)</th>
-            <th>Capacity (kW)</th>
-            <th>Flow Temp (°C)</th>
-            <th>Refrigerant</th>
-            <th>Manufacturer</th>
-            <th>Year (Commissioned / Planned)</th>
-            <th>Image / photo</th>
-            <th class="col-action"></th>
-          </tr>
-        </thead>
-        <tbody id="contributeRows"></tbody>
-      </table>
-    </div>
-
-    <button id="addProjectRow" class="contribute-add-btn" type="button">+ Add another project</button>
-
-    <div class="contribute-section">
-      <h3>Sources &amp; consent</h3>
-      <p>
-        Please tell us where this information comes from. If any of it is
-        <strong>not already in the public domain</strong>, we need evidence of consent from the
-        owner, operator or developer before it can be published.
-      </p>
-
-      <label class="contribute-check">
-        <input type="checkbox" id="consentPublic" />
-        <span>All information submitted is already in the public domain (planning portal, press release, published case study, etc.)</span>
-      </label>
-
-      <label class="contribute-check">
-        <input type="checkbox" id="consentObtained" />
-        <span>Some or all of it is not public — I have consent from the owner / operator / developer to share it, and can provide evidence.</span>
-      </label>
-
-      <label class="contribute-field">
-        <span>Source links or evidence of consent</span>
-        <textarea id="contributeSources" rows="3" placeholder="Paste links to your sources, or describe the consent obtained (e.g. written approval from the operator — attached)."></textarea>
-      </label>
-    </div>
-
-    <div class="contribute-section">
-      <h3>Your details</h3>
-      <div class="contribute-grid">
-        <label class="contribute-field">
-          <span>Name</span>
-          <input type="text" id="contributeName" autocomplete="name" />
-        </label>
-        <label class="contribute-field">
-          <span>Email</span>
-          <input type="email" id="contributeEmail" autocomplete="email" />
-        </label>
-        <label class="contribute-field">
-          <span>Organisation</span>
-          <input type="text" id="contributeOrg" autocomplete="organization" />
-        </label>
-      </div>
-    </div>
-
-    <p class="contribute-photo-note">
-      <strong>Photos:</strong> paste a link in the table above, or attach the image files directly
-      to your email.
-    </p>
-
-    <div class="contribute-section contribute-send">
-      <h3>Two ways to send this</h3>
-
-      <div class="contribute-options">
-
-        <div class="contribute-option">
-          <div class="contribute-option-head">
-            <span class="contribute-option-num">1</span>
-            <span class="contribute-option-title">Open your email app</span>
-          </div>
-          <p>Starts a new email with everything already filled in — you just press send.</p>
-          <button id="contributeSubmit" class="contribute-submit-btn" type="button">
-            Submit by email
-          </button>
-        </div>
-
-        <div class="contribute-option">
-          <div class="contribute-option-head">
-            <span class="contribute-option-num">2</span>
-            <span class="contribute-option-title">Copy &amp; paste it yourself</span>
-          </div>
-          <p>
-            Best if you use webmail (Gmail, Outlook.com) or nothing opens in option 1.
-            Copies everything as text, ready to paste into an email to
-            <a href="mailto:info@ukheatpumpmap.com">info@ukheatpumpmap.com</a>.
-          </p>
-          <button id="contributeCopy" class="contribute-copy-btn" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true" class="contribute-copy-icon">
-              <rect x="9" y="9" width="11" height="11" rx="2"></rect>
-              <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
-            </svg>
-            <span id="contributeCopyLabel">Copy details to paste into an email</span>
-          </button>
-        </div>
-
-      </div>
-
-      <div id="contributeStatus" class="contribute-status" role="status" aria-live="polite"></div>
-    </div>
-
-  </div>
-</div>
   <!-- ========================================= -->
   <!-- SCRIPTS -->
   <!-- ========================================= -->
@@ -496,7 +366,7 @@
     <div style="padding:2rem;font-family:sans-serif;color:#e5e7eb;background:#121212;max-width:800px;margin:0 auto">
       <h1>UK Heat Pump Map</h1>
       <p>An interactive map of large-scale heat pump installations across the UK, covering district energy networks and industrial heat decarbonisation projects.</p>
-      <p>This interactive map requires JavaScript to display. Please enable JavaScript in your browser, or visit <a href="/about.html" style="color:#f59e0b">the About page</a> for more information.</p>
+      <p>This interactive map requires JavaScript to display. Please enable JavaScript in your browser, or visit <a href="about.html" style="color:#f59e0b">the About page</a> for more information.</p>
       <p>Contact: <a href="mailto:info@ukheatpumpmap.com" style="color:#f59e0b">info@ukheatpumpmap.com</a></p>
     </div>
   </noscript>
